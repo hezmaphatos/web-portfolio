@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Services\HomeService;
+use Illuminate\Http\JsonResponse;
 
-// Placeholder, replaced in phase 1.
 class HomeController extends Controller
 {
-    public function __invoke()
+    public function __construct(private readonly HomeService $home) {}
+
+    public function __invoke(): JsonResponse
     {
-        abort(501);
+        return response()->json(['data' => $this->home->payload()]);
     }
 }

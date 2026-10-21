@@ -24,7 +24,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('admin-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
-        RateLimiter::for('public-hit', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        // Named limiters are keyed by name + key: view and defeat each get their own 30/min/IP budget.
+        RateLimiter::for('project-view', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        RateLimiter::for('project-defeat', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('contact', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
         // No implicit model binding: controllers receive plain ids/slugs and Services look them up.

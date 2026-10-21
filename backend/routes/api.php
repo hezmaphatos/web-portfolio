@@ -25,8 +25,8 @@ Route::prefix('v1')->group(function () {
         Route::get('home', HomeController::class);
         Route::get('projects', [PublicProjectController::class, 'index']);
         Route::get('projects/{slug}', [PublicProjectController::class, 'show']);
-        Route::post('projects/{slug}/view', [PublicProjectController::class, 'view'])->middleware('throttle:public-hit');
-        Route::post('projects/{slug}/defeat', [PublicProjectController::class, 'defeat'])->middleware('throttle:public-hit');
+        Route::post('projects/{slug}/view', [PublicProjectController::class, 'view'])->middleware('throttle:project-view');
+        Route::post('projects/{slug}/defeat', [PublicProjectController::class, 'defeat'])->middleware('throttle:project-defeat');
         Route::post('contact', ContactController::class)->middleware('throttle:contact');
     });
 

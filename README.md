@@ -27,7 +27,8 @@ cp .env.example .env              # set PHP_BIN if `php` on PATH is older than 8
 cd backend
 cp .env.example .env              # DB_*, ADMIN_EMAIL, ADMIN_PASSWORD, REVALIDATE_SECRET
 composer setup                    # install, app key, migrate, storage:link
-php artisan db:seed               # CV content, game data, admin account
+php artisan db:seed               # CV content, game data, admin account (re-run safe: inserts only what is missing)
+# password recovery: php artisan db:seed --class=AdminUserSeeder   (resets the admin to ADMIN_EMAIL / ADMIN_PASSWORD)
 
 # frontend
 cd ../frontend

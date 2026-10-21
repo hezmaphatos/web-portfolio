@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Public\ContactRequest;
+use App\Services\MessageService;
+use Illuminate\Http\JsonResponse;
 
-// Placeholder, replaced in phase 1.
 class ContactController extends Controller
 {
-    public function __invoke()
+    public function __construct(private readonly MessageService $messages) {}
+
+    public function __invoke(ContactRequest $request): JsonResponse
     {
-        abort(501);
+        return response()->json([
+            'data' => $this->messages->submit($request->validated(), $request->ip(), $request->userAgent()),
+        ], 201);
     }
 }

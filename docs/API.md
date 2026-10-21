@@ -142,10 +142,10 @@ Published only — a draft is returned only when the request carries a valid adm
 }
 ```
 
-### `POST /public/projects/{slug}/view` (throttle 30/min/IP)
+### `POST /public/projects/{slug}/view` (throttle 30/min/IP, own bucket)
 `200 { "data": { "view_count": 13 } }`. 404 for unknown/draft.
 
-### `POST /public/projects/{slug}/defeat` (throttle 30/min/IP)
+### `POST /public/projects/{slug}/defeat` (throttle 30/min/IP, own bucket — views never use up the defeat budget)
 `200 { "data": { "defeat_count": 4 } }`. 404 unknown/draft, 422 when `boss_enabled = false`.
 
 ### `POST /public/contact` (throttle 5/hour/IP)
@@ -158,10 +158,16 @@ Rules: name 2–100, email valid ≤190, message 10–5000.
 The browser never sees the token: the Next.js BFF (`/api/admin/*`) stores it in an httpOnly cookie and adds `Authorization: Bearer …`.
 
 ### Auth
-- `POST /admin/login` (throttle 5/min/IP) `{ email, password }` → `200 { "data": { "token": "hk_…", "user": { "id", "name", "email" } } }`; 422 on bad credentials.
+- `POST /admin/login` (throttle 5/min/IP) `{ email, password }` → `200 { "data": { "token": "1|hk_…", "user": { "id", "name", "email" } } }`; 422 on bad credentials. The token is opaque (Sanctum `{id}|hk_{random}`): store it and replay it unchanged, never validate its format.
+- Every admin route answers `401 { "message": "Unauthenticated." }` for a missing/invalid/expired token, whatever the `Accept` header (no login redirect).
 - `POST /admin/logout` → `200 { "data": { "ok": true } }` (revokes the current token).
 - `GET /admin/me` → `{ "data": { "id", "name", "email" } }`.
 - `PUT /admin/password` `{ current_password, password, password_confirmation }` (min 12) → `{ "data": { "ok": true } }`.
+
+### Updates
+`PUT` on experiences, skills, projects, awards and sections is **partial**: an omitted field keeps its value (the admin table can send `{ "is_visible": false }` alone); a required field that is sent cannot be blank. Cross-field rules (published project needs a summary, `year_end ≥ year_start`, `end_date ≥ start_date`, skill game fields required unless the resulting category is `soft`) are checked against the stored row merged with the sent fields. `/admin/site` PUT always needs `full_name` and `nickname`.
+
+Media references must point at the right kind (422 otherwise): images for `avatar_media_id`, `portrait_media_id`, `og_media_id` (site and project), `cover_media_id`, `boss_media_id`, `gallery[].media_id`, `logo_media_id`, `icon_media_id` and award `media_id`; a PDF for `cv_media_id`; a video for `video_media_id`.
 
 ### Lists
 `GET /admin/{experiences|skills|projects|awards|sections}` return the **full list** ordered by `sort_order`, `id` (no pagination — small tables; the admin table searches/sorts/paginates client-side, and drag-reorder needs every row). `media` and `messages` paginate server-side (`?page`, `per_page` ≤ 100, `q`).
@@ -211,9 +217,9 @@ Fields: `title` (req), `event` (req), `issuer`, `year` 1990–2100, `placement` 
 - `GET /admin/media?q=&type=image|video|pdf&page=&per_page=` → paginated admin Media (newest first), `q` matches `original_name`/`alt`.
 - `GET /admin/media/{id}` → admin Media with `used_in`.
 - `POST /admin/media` multipart `files[]` (1–20 files) + optional `alt` → `201 { "data": [ admin Media ] }`.
-  Allowed: jpg/jpeg/png/webp/gif ≤ 8 MB (processed: WebP ≤1920px, 480px thumb, EXIF stripped, blur + dominant colour; GIF is kept as is, thumb from the first frame), pdf ≤ 10 MB, mp4/webm ≤ 30 MB. SVG is rejected. Mime **and** extension are both checked.
+  Allowed: jpg/jpeg/png/webp/gif ≤ 8 MB and ≤ 40 megapixels (`portfolio.media.max_pixels`, read from the header before decoding) (processed: WebP ≤1920px, 480px thumb, EXIF stripped, blur + dominant colour; GIF is kept as is, thumb from the first frame), pdf ≤ 10 MB, mp4/webm ≤ 30 MB. SVG is rejected. Mime **and** extension are both checked.
 - `PATCH /admin/media/{id}` `{ alt }` → admin Media.
-- `POST /admin/media/{id}/replace` multipart `file` → same id, new files (old files deleted) → admin Media.
+- `POST /admin/media/{id}/replace` multipart `file` → same id, new files (old files deleted) → admin Media. The new file must be the same kind (image/video/pdf) as the current one, otherwise 422 on `file`.
 - `DELETE /admin/media/{id}` → `200 { "data": { "ok": true } }`, or `409 { "message": "Media is in use.", "used_in": [...] }`.
 
 ### Messages
@@ -224,7 +230,7 @@ Fields: `title` (req), `event` (req), `issuer`, `year` 1990–2100, `placement` 
 ```jsonc
 {
   "data": {
-    "counts": { "projects": 4, "published_projects": 4, "skills": 21, "messages": 3, "unread_messages": 1,
+    "counts": { "projects": 4, "published_projects": 4, "skills": 22, "messages": 3, "unread_messages": 1,
                 "experiences": 8, "awards": 4, "media": 0 },
     "latest_messages": [ { "id", "name", "email", "message", "read_at", "created_at" } ],   // 5 newest
     "most_viewed": [ { "id", "slug", "title", "view_count" } ],                            // top 5
@@ -241,6 +247,9 @@ Fields: `title` (req), `event` (req), `issuer`, `year` 1990–2100, `placement` 
 |---|---|
 | site settings, skills, media (alt/replace) | `home`, `projects` |
 | sections, experiences, awards | `home` |
-| project create/update/delete/reorder | `home`, `projects`, `project:{slug}` (old and new slug when renamed) |
+| project create/update/delete | `home`, `projects`, `project:{slug}` (old and new slug when renamed) |
+| project reorder | `home`, `projects` (prev/next of every detail page changes; detail pages are also tagged `projects`) |
+
+Media upload and delete send nothing: a new upload is not referenced yet, and only unused media can be deleted.
 
 Frontend cache tags: Home data `home`; projects index `projects`; project detail `projects` + `project:{slug}`.

@@ -18,6 +18,12 @@ class SiteSetting extends Model
 {
     use HasFactory;
 
+    /** The only row. */
+    public const ID = 1;
+
+    /** `stats[].auto` values: the stat value is computed instead of typed (HomeService fills it). */
+    public const STAT_AUTO = ['projects'];
+
     protected function casts(): array
     {
         return [

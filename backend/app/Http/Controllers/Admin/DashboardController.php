@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\DashboardService;
+use Illuminate\Http\JsonResponse;
 
-// Placeholder, replaced in phase 1.
 class DashboardController extends Controller
 {
-    public function __invoke()
+    public function __construct(private readonly DashboardService $dashboard) {}
+
+    public function __invoke(): JsonResponse
     {
-        abort(501);
+        return response()->json(['data' => $this->dashboard->overview()]);
     }
 }

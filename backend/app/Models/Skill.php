@@ -23,6 +23,9 @@ class Skill extends Model
     /** Soft skills are shown as chips in About and are never game skills. */
     public const SOFT = 'soft';
 
+    /** Battle data, required unless category = soft (then always null). */
+    public const GAME_FIELDS = ['attack_name', 'damage', 'cooldown_ms'];
+
     protected function casts(): array
     {
         return [
