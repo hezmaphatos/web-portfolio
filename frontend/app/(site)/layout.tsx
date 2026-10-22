@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { SmoothScroll } from "@/components/providers/SmoothScroll";
+import { StoreHydrator } from "@/components/providers/StoreHydrator";
 import { getHome } from "@/lib/api";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,15 +32,21 @@ export async function generateMetadata(): Promise<Metadata> {
  * Public site chrome. `modal` is the parallel-route slot for the Project Stage modal
  * (intercepting route, phase 6); it renders nothing until then.
  */
-export default function SiteLayout({ children, modal }: LayoutProps<"/">) {
+export default async function SiteLayout({ children, modal }: LayoutProps<"/">) {
+  const home = await getHome();
+
   return (
-    <>
+    <SmoothScroll>
+      <StoreHydrator
+        skillIds={home.skills.map((skill) => skill.id)}
+        projectIds={home.projects.map((project) => project.id)}
+      />
       <a href="#main" className="hk-skip hk-btn hk-btn-ink">
         Skip to content
       </a>
       <main id="main">{children}</main>
       {modal}
       <div className="hk-grain" aria-hidden="true" />
-    </>
+    </SmoothScroll>
   );
 }
