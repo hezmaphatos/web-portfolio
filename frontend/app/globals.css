@@ -68,7 +68,9 @@ body {
     font-weight: 800;
     font-variation-settings: "opsz" 96;
     line-height: 0.88;
-    letter-spacing: -0.03em;
+    /* Slightly open: tighter tracking makes glyphs touch edge to edge and anti-aliasing then
+       draws hairline seams between letters at display sizes. */
+    letter-spacing: -0.005em;
   }
 
   .hk-condensed {

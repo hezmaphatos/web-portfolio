@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname),
     rules: {
       "*.css": {
+        // Leave CSS Modules to Next's own pipeline: re-emitting them `as: "*.css"` turns them into
+        // global CSS and every `styles.x` import comes back undefined.
+        condition: { not: { path: /\.module\.css$/ } },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },

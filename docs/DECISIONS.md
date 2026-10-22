@@ -55,3 +55,20 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - Messages paginate server-side, so the inbox has its own list (not `ResourceTable`); view state lives in the URL; visitor text is always rendered as plain text.
 - Backend Form Requests got readable `attributes()` for nested fields ("The metric label field is required." instead of "metrics.0.label").
 - Admin "not found" states (bad id) render in-page with HTTP 200 — acceptable behind auth.
+
+## Phase 3 — Static site
+
+- Data readers in `lib/api.ts` are `"use cache"` + `cacheLife("max")` + `cacheTag(...)`; the backend webhook expires tags with `revalidateTag(tag, { expire: 0 })`. Verified on a production build: pages stay cached until the webhook fires, then show the edit on the next visit. The webhook accepts only `home`, `projects`, `project:{slug}`.
+- `next.config.ts`: `images.remotePatterns` is derived from `API_URL` (`/storage/**`); `dangerouslyAllowLocalIP` is on only when the API host is local (dev), off in production.
+- The Turbopack Tailwind loader rule skips `*.module.css` (a `condition`); without it CSS Modules were re-emitted as global CSS and `styles.x` was undefined.
+- Display type uses −0.005em tracking and no `text-stroke`: tighter tracking makes condensed glyphs touch and draw hairline seams; the variable font's overlapping contours show through a stroke. The Hero last name uses an offset ink text-shadow instead.
+- Social links are labelled tags (no brand logos — lucide v1 dropped brand icons; drawing logos from memory is not worth it).
+- Markdown from the admin starts at h4 (`headingLevel`) so authored headings never break the page outline.
+- Home sections: Hero paper → About paper-2 → Journey paper → Skills paper-2 → Projects ink → Trophies lime → Contact ink.
+- Journey filter works without JavaScript: radio "tabs" + `:has(#quest-filter-x:checked)` CSS; the Work tab covers work, internship and freelance.
+- The footer year is a `"use cache"` + `cacheLife("days")` component (a `Date` inside a cache scope is captured into the shell), so Home revalidates daily on its own as well.
+- The static Skill Tree already shows game stats and the default loadout (`defaultLoadout`, dummy clear time); the interactive inventory/drag/dummy is phase 5.
+- Projects: the showcase (featured, ≤ 6) scrolls natively with scroll-snap until the pinned GSAP track (phase 6); the grid shows every published project incl. featured; `/projects` "filters" are category jump links + grouped sections (no JS, no searchParams, stays static).
+- `/projects/[slug]`: `generateStaticParams` returns every published slug (a placeholder that `notFound()`s when there are none); `params` is awaited inside `<Suspense>` (ISR with Cache Components). Consequence: an unknown slug renders "Level not found" with noindex but HTTP 200 — revisit in phase 8.
+- Draft preview: only when `draftMode()` is on does the page read the `hk_admin` cookie and fetch the draft uncached (banner + noindex + Exit preview Server Action). The normal path never reads cookies, so it stays static.
+- Project page = `ProjectStage` component, so the phase-6 modal can reuse it. Only large display type sits directly on the accent colour (AA); small text sits on paper/ink.
