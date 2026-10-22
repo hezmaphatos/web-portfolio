@@ -135,4 +135,17 @@ class StoreProjectRequest extends FormRequest
     {
         return ['nullable', 'string', 'max:120', 'alpha_dash:ascii', 'regex:'.self::SLUG_PATTERN, $unique];
     }
+
+    /** Readable names for nested fields ("The metric label field is required.", not "metrics.0.label"). */
+    public function attributes(): array
+    {
+        return [
+            'highlights.*' => 'highlight',
+            'challenges.*' => 'challenge',
+            'skill_ids.*' => 'skill',
+            'gallery.*.media_id' => 'gallery image',
+            'gallery.*.device' => 'gallery device',
+            'gallery.*.caption' => 'gallery caption',
+        ];
+    }
 }

@@ -71,4 +71,20 @@ class UpdateSiteRequest extends FormRequest
             $stats,
         )]);
     }
+
+    /** Readable names for nested fields ("The metric label field is required.", not "metrics.0.label"). */
+    public function attributes(): array
+    {
+        return [
+            'roles.*' => 'role',
+            'socials.*.label' => 'social label',
+            'socials.*.url' => 'social URL',
+            'socials.*.icon' => 'social icon',
+            'stats.*.label' => 'stat label',
+            'stats.*.value' => 'stat value',
+            'stats.*.prefix' => 'stat prefix',
+            'stats.*.suffix' => 'stat suffix',
+            'stats.*.auto' => 'stat source',
+        ];
+    }
 }

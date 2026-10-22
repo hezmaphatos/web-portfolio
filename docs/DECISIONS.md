@@ -36,3 +36,22 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - LinkedIn URL seeded as `https://www.linkedin.com/in/yehezkiel-natanael` — derived from the CV's "linkedin/yehezkiel-natanael"; the owner should verify it in admin.
 - Content seeders are insert-only (never overwrite admin edits on re-seed); `AdminUserSeeder` keeps exactly one admin and doubles as password recovery (`php artisan db:seed --class=AdminUserSeeder`).
 - `SiteService` (not `SiteSettingService`) to match the `site` resource, controller and request names.
+
+## Phase 2 — Admin panel
+
+- shadcn/ui components live in `components/admin/ui` (spec reserves `components/ui` for the site); their tokens are scoped to `.admin-theme`, and `AdminBodyTheme` mirrors that class onto `<body>` while the admin is mounted so Radix portals (dialogs, selects) get it too. No dark mode.
+- shadcn 4.22 imports `cn` from a tiny npm package called `cn`; replaced with the usual clsx + tailwind-merge helper in `lib/utils.ts` (after every `shadcn add`, swap the import and `npm uninstall cn`). `next-themes` dropped (no dark mode).
+- BFF: cookie `hk_admin` holds the opaque Sanctum token — httpOnly, SameSite=Lax, Secure in production, 7 days (= `SANCTUM_EXPIRATION`), not sliding. The catch-all proxy streams bodies (multipart up to 30 MB verified), passes back only content-type/content-disposition/retry-after, sets `no-store`, refuses `.`/`..` segments, and clears the cookie on a Laravel 401.
+- CSRF: non-GET BFF requests with an `Origin` header must come from this site (request origin, Host/X-Forwarded-Host, or `NEXT_PUBLIC_SITE_URL`); no `Origin` (curl, server) is allowed.
+- Session check: `proxy.ts` (cookie present) + `SessionGate` inside `<Suspense>` in the panel layout (Laravel `/admin/me`). A dead token goes to `/admin/login?expired=1`, which clears the stale cookie (no redirect loop). An API outage shows "Can't reach the API" instead of logging out. Framework control flow caught in `try/catch` is re-thrown with `unstable_rethrow` (prerender postponement is not an outage).
+- Admin login goes through the Next server, so Laravel's 5/min/IP throttle is effectively global for admin logins — fine for a single admin.
+- Preview: `/api/admin/preview?slug=` validates the token with Laravel before enabling Draft Mode; the public page honours it in phase 3.
+- `lib/battle.ts` was written in phase 2 (not 6) because the Boss Preview needs `simulate()`: clear time is exact (event-driven engine + closed form), an empty loadout clears in `Infinity` ("—"), final-boss phases split at the literal 66 %/33 %, `bestLoadout` searches every combination with a lower-bound prune. Callers pass only visible skills.
+- Boss balance note: with the seeded numbers the default loadout clears the bosses in 3.0–3.5 s but the best loadout (fast, cheap skills) in 1.0–2.0 s — below the spec's 3–8 s target. The Boss Preview warns about it; raising `boss_hp` (or slowing cheap skills) in the admin is the spec's lever. Seed values were left as given in Lampiran A.
+- CRUD kit: one `ResourceTable` (react-table v9 for sorting/pagination; search filters rows first) with a Reorder mode that shows every row and posts the full order once; reorder is disabled while a filter is active. One form pattern (react-hook-form + zod, `applyServerErrors` maps Laravel 422 dot-paths onto fields and focuses the first visible one).
+- Cache Components keeps visited admin pages alive but hidden (React Activity): create forms clear themselves once hidden after a successful create, edit forms re-sync with `keepDirtyValues`, and DOM lookups must skip hidden copies.
+- Multi-file upload sends one `POST /media` per file (≤ 3 in parallel) to get a real per-file progress bar.
+- Skills cooldown is edited in seconds in the UI and stored as `cooldown_ms`. Project form tabs live in the URL hash (`#boss`), all tabs stay mounted, and a `beforeunload` prompt guards unsaved changes.
+- Messages paginate server-side, so the inbox has its own list (not `ResourceTable`); view state lives in the URL; visitor text is always rendered as plain text.
+- Backend Form Requests got readable `attributes()` for nested fields ("The metric label field is required." instead of "metrics.0.label").
+- Admin "not found" states (bad id) render in-page with HTTP 200 — acceptable behind auth.

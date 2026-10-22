@@ -41,4 +41,16 @@ class StoreExperienceRequest extends FormRequest
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
         ];
     }
+
+    /** Readable names for nested fields ("The metric label field is required.", not "metrics.0.label"). */
+    public function attributes(): array
+    {
+        return [
+            'bullets.*' => 'bullet',
+            'metrics.*.label' => 'metric label',
+            'metrics.*.value' => 'metric value',
+            'metrics.*.prefix' => 'metric prefix',
+            'metrics.*.suffix' => 'metric suffix',
+        ];
+    }
 }
