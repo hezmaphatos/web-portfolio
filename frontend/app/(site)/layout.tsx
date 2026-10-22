@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { GameChrome } from "@/components/game/GameChrome";
+import { StageHintHost } from "@/components/game/StageHintHost";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { StoreHydrator } from "@/components/providers/StoreHydrator";
 import { getHome } from "@/lib/api";
@@ -44,8 +46,14 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
       <a href="#main" className="hk-skip hk-btn hk-btn-ink">
         Skip to content
       </a>
+      <GameChrome
+        site={home.site}
+        sections={home.sections}
+        bossTotal={home.projects.filter((project) => project.boss.enabled).length}
+      />
       <main id="main">{children}</main>
       {modal}
+      <StageHintHost />
       <div className="hk-grain" aria-hidden="true" />
     </SmoothScroll>
   );
