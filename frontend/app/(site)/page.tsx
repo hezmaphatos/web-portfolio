@@ -5,6 +5,7 @@ import { JourneyChapter } from "@/components/chapters/JourneyChapter";
 import { ProjectsChapter } from "@/components/chapters/ProjectsChapter";
 import { SkillsChapter } from "@/components/chapters/SkillsChapter";
 import { TrophiesChapter } from "@/components/chapters/TrophiesChapter";
+import { BootScreen } from "@/components/game/splash/BootScreen";
 import { getHome } from "@/lib/api";
 import { sectionsByKey } from "@/lib/utils";
 
@@ -19,6 +20,16 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Chapter 0: the boot screen, a fixed overlay above the Hero (shown only by the head script). */}
+      {s.boot ? (
+        <BootScreen
+          wordmark={home.site.nickname}
+          title={s.hero?.title ?? "Player One"}
+          label={s.boot.title}
+          hint={s.boot.hint}
+          bossIds={home.projects.filter((p) => p.boss.enabled).map((p) => p.id)}
+        />
+      ) : null}
       {s.hero ? <HeroChapter site={home.site} section={s.hero} /> : null}
       {s.about ? (
         <AboutChapter site={home.site} section={s.about} projectsCount={home.projects.length} />

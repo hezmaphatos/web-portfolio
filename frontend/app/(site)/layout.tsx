@@ -49,7 +49,9 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
       <GameChrome
         site={home.site}
         sections={home.sections}
-        bossTotal={home.projects.filter((project) => project.boss.enabled).length}
+        bossIds={home.projects
+          .filter((project) => project.boss.enabled)
+          .map((project) => project.id)}
       />
       <main id="main">{children}</main>
       {modal}

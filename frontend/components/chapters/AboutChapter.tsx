@@ -1,5 +1,8 @@
 import { FileDown } from "lucide-react";
 
+import { AboutMotion } from "@/components/chapters/about/AboutMotion";
+import { FlipCard } from "@/components/chapters/about/FlipCard";
+import { HintButton } from "@/components/game/HintButton";
 import { ChapterHeading } from "@/components/ui/ChapterHeading";
 import { Markdown } from "@/components/ui/Markdown";
 import { Media } from "@/components/ui/Media";
@@ -20,12 +23,25 @@ const STAT_STYLES = [
 const NUMERIC = /^-?\d+(\.\d+)?$/;
 
 /**
- * Chapter 2 — CHARACTER SELECT (spec §4.1). Static version (= Lite mode): the character card shows
- * the portrait with the pixel avatar as an inset, the bio is plain text and the stats show their
- * final values. Phase 4 adds the interaction on top of the hooks below:
- * - [data-flip-card] flips between [data-flip-front] (portrait) and [data-flip-back] (avatar);
- * - [data-bio-scrub] reveals the lead word by word, scrubbed by scroll;
- * - [data-counter] counts up to its value.
+ * Without JavaScript the flip button does nothing, so the card falls back to the phase-3 look:
+ * portrait in front, the pixel avatar as a small tilted inset (the back face pulled forward).
+ */
+const NO_JS_FLIP = `
+.hk-flip-btn{display:none}
+.hk-flip-back{transform:rotate(3deg);backface-visibility:visible;-webkit-backface-visibility:visible;
+  inset:auto .75rem .75rem auto;width:34%;height:auto;padding:.25rem;background:var(--paper);
+  border-width:2px;box-shadow:var(--shadow-sm)}
+.hk-flip-back-body{padding:0;background:none}
+.hk-flip-back-caption{display:none}
+`;
+
+/**
+ * Chapter 2 — CHARACTER SELECT (spec §4.1). A Server Component; all content is in the HTML (= Lite
+ * mode). Client islands add the interaction:
+ * - <FlipCard>: [data-flip-card] turns between [data-flip-front] (portrait) and [data-flip-back]
+ *   (pixel avatar), and owns the About stage hint;
+ * - <AboutMotion>: [data-bio-scrub] lights up word by word with the scroll, [data-counter]s count
+ *   up when visible (the final value is in the HTML, and a sr-only copy is what screen readers read).
  */
 export function AboutChapter({ site, section, projectsCount }: Props) {
   // `auto: "projects"` stats are computed by the API; the page's own count is the same number
@@ -43,7 +59,13 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
       data-chapter="about"
     >
       <div className="hk-wrap">
-        <ChapterHeading level={2} plain="About" section={section} id="about-title" />
+        <ChapterHeading
+          level={2}
+          plain="About"
+          section={section}
+          id="about-title"
+          aside={<HintButton hintKey="about" text={section.hint} className="mt-[0.35em]" />}
+        />
         <Markdown className="-mt-4 mb-12 text-lg md:-mt-6 md:mb-16">{section.body}</Markdown>
 
         <div className="grid gap-14 md:grid-cols-12 md:gap-10 lg:gap-14">
@@ -59,29 +81,39 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
               </div>
 
               <div className="p-3 md:p-4">
-                <div data-flip-front className="border-ink relative border-2">
-                  <Media
-                    media={site.portrait}
-                    alt={`Portrait of ${site.full_name}`}
-                    seed={`${site.nickname}-portrait`}
-                    ratio={4 / 5}
-                    sizes="(min-width: 768px) 34vw, 90vw"
-                  />
-                  <div
-                    data-flip-back
-                    className="border-ink bg-paper absolute right-3 bottom-3 w-[34%] rotate-3 border-2 p-1 shadow-[var(--shadow-sm)]"
-                  >
+                <noscript>
+                  <style>{NO_JS_FLIP}</style>
+                </noscript>
+                <FlipCard
+                  hint={section.hint}
+                  front={
                     <Media
-                      media={site.avatar}
-                      alt={`Pixel avatar of ${site.nickname}`}
-                      seed={`${site.nickname}-avatar`}
-                      accent="#3D5AFE"
-                      ratio={1}
-                      thumb
-                      sizes="160px"
+                      media={site.portrait}
+                      alt={`Portrait of ${site.full_name}`}
+                      seed={`${site.nickname}-portrait`}
+                      ratio={4 / 5}
+                      sizes="(min-width: 768px) 34vw, 90vw"
                     />
-                  </div>
-                </div>
+                  }
+                  back={
+                    <div className="hk-flip-back-body bg-ink flex h-full flex-col justify-center gap-4 p-5">
+                      <div className="border-paper border-2">
+                        <Media
+                          media={site.avatar}
+                          alt={`Pixel avatar of ${site.nickname}`}
+                          seed={`${site.nickname}-avatar`}
+                          accent="#3D5AFE"
+                          ratio={1}
+                          sizes="(min-width: 768px) 30vw, 80vw"
+                        />
+                      </div>
+                      <p className="hk-flip-back-caption hk-pixel text-lime flex justify-between gap-3 text-xs">
+                        <span>8-bit form</span>
+                        <span className="text-paper">{site.nickname}</span>
+                      </p>
+                    </div>
+                  }
+                />
               </div>
 
               <figcaption className="px-4 pb-5 md:px-5">
@@ -114,7 +146,7 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
           </div>
 
           {/* Bio, stats, soft skills */}
-          <div className="md:col-span-7">
+          <AboutMotion className="md:col-span-7">
             <h3 className="hk-pixel mb-4 text-xs md:text-sm">
               <span aria-hidden="true">▸ </span>Bio
             </h3>
@@ -145,7 +177,12 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
                       <dt className="hk-pixel mt-2 text-[0.7rem] leading-tight">{stat.label}</dt>
                       <dd className="hk-display hk-condensed flex items-baseline text-5xl tracking-[-0.005em] whitespace-nowrap xl:text-6xl">
                         {stat.prefix ? <span>{stat.prefix}</span> : null}
-                        <span data-counter={NUMERIC.test(stat.value) ? stat.value : undefined}>
+                        {/* Screen readers get the final value; the visible copy may count up. */}
+                        <span className="sr-only">{stat.value}</span>
+                        <span
+                          aria-hidden="true"
+                          data-counter={NUMERIC.test(stat.value) ? stat.value : undefined}
+                        >
                           {stat.value}
                         </span>
                         {stat.suffix ? (
@@ -185,7 +222,7 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
                 ) : null}
               </a>
             ) : null}
-          </div>
+          </AboutMotion>
         </div>
       </div>
     </section>

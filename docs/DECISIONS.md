@@ -20,7 +20,7 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 
 - Controllers take plain ids (no implicit model binding); Services `findOrFail`, and `bootstrap/app.php` renders a generic `{"message":"Not found."}` so model class names never leak.
 - Unauthenticated API requests always get 401 JSON (`redirectGuestsTo(fn () => null)`) — there is no `login` route in an API-only app.
-- "Array access, no object access" allows Eloquent *write* methods on a fetched instance (`update`, `delete`, `createToken`, relation writes); reads always use array access.
+- "Array access, no object access" allows Eloquent _write_ methods on a fetched instance (`update`, `delete`, `createToken`, relation writes); reads always use array access.
 - Reorder = one locked SELECT + one UPSERT of full rows in a transaction: a partial upsert (`id`, `sort_order` only) fails on NOT NULL columns in MySQL strict mode and SQLite (verified).
 - Project pivots (skills, gallery) are written with one `detach()` + one batch `attach()`; `sync()` with pivot data runs one query per row.
 - DB-dependent validation (ids exist, gallery items are images, merged-state rules on partial updates) lives in Form Request `after()` hooks with one `whereIn` count per list.
@@ -72,3 +72,32 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - `/projects/[slug]`: `generateStaticParams` returns every published slug (a placeholder that `notFound()`s when there are none); `params` is awaited inside `<Suspense>` (ISR with Cache Components). Consequence: an unknown slug renders "Level not found" with noindex but HTTP 200 — revisit in phase 8.
 - Draft preview: only when `draftMode()` is on does the page read the `hk_admin` cookie and fetch the draft uncached (banner + noindex + Exit preview Server Action). The normal path never reads cookies, so it stays static.
 - Project page = `ProjectStage` component, so the phase-6 modal can reuse it. Only large display type sits directly on the accent colour (AA); small text sits on paper/ink.
+
+## Phase 4 — Stage hints + Hero/About/Journey motion
+
+- Chapters stay Server Components; motion lives in client islands (`components/chapters/{hero,about,journey,shared}/*`) that wrap or sit inside the server markup and only enhance it. Server HTML = the no-JS / Lite version.
+- Hints: an auto-opened hint also closes when its stage scrolls below 40 % visible (reading of "manual hints don't auto-close on the first scroll"); manual ones (Help / "?") only close on 7 s, ✕ or the action. The 7 s timer pauses while the card is hovered or focused (WCAG 2.2.1). No hint opens before the cookie is read or while the splash is up.
+- Hint text reaches screen readers through an always-mounted sr-only `role="status"`; the visible copy is `aria-hidden`, the ✕ stays reachable (end of the tab order, never focused automatically).
+- Hero name: letters are hidden only while the splash is `playing` (covered); without a splash the name gets a non-hiding hop. The split is reverted after the intro.
+- Hero roles: typewriter in one aria-hidden slot over the list (list at opacity 0, still read by SR, still holding its space → no CLS). Only when the list fits in ≤ 2 lines; phones keep the static list (a one-line slot over a 3-line list left a gap).
+- Stickers: the nickname tag is content, so it stays a `<p>` (draggable by pointer, moved by "Toss stickers"); the stat stickers become buttons (arrows/Enter). Throws bounce via a proxy + reflection; Lite keeps plain dragging and an instant "toss". Device tilt only where no permission prompt is needed (no iOS prompt on load).
+- About flip: a transparent toggle `<button aria-pressed>` covers the portrait (a `<button>` can't contain the figure's `<dl>`); no-JS gets the avatar back as the phase-3 inset via a `<noscript><style>`.
+- Journey: collapsed by default only with JS + motion (first entry open); Lite/no-JS = all open. Entries without description/bullets (education) get no toggle. Expand/collapse = instant layout change + clip-path on the card + translateY on the entries below (no height/grid-rows animation); content after the list jumps (usually off-screen).
+- Journey "active period": per-entry CSS `position: sticky` periods (work without JS) + a ScrollTrigger that marks the last entry whose top crossed 55 % of the viewport (`data-active`: lime marker + bigger node).
+- Counters: only counters still below the fold reset to 0 (no flash for a reload mid-page); the box is locked to the final width; screen readers read an sr-only copy of the final value; triggered by IntersectionObserver so a jump past them can't leave them at 0.
+- The hint card's "shortcut button" option is not used (both chapter hints already have a second sentence).
+
+## Phase 4 — Game foundation, splash, HUD, avatar path
+
+- Save cookie: an untouched new game never creates `hackker_save`; the cookie appears with the first real progress (START → First Steps). Persist writes are deduplicated, so the 7-day expiry slides only on real changes. Blocked cookies → progress lives in memory for the session.
+- The loadout is a compact list (no holes): slots fill left to right; equipping into a used slot replaces or swaps.
+- Preferences (Lite, Sound, Hackker Mode) are one localStorage key (`hackker_prefs`), with an in-memory fallback when storage throws.
+- Lite mode = `prefs.lite` on/off, or "auto" = prefers-reduced-motion / Save-Data. A pre-paint head script sets `<html data-lite>` and `data-boot` before the first paint (no flash, no CLS); `StoreHydrator` keeps them in sync.
+- Splash only plays on a hard load of Home, once per session (`boot_seen`), never in Lite/reduced motion or without JS (the overlay is shown only when the head script sets `data-boot="play"`; a 10 s CSS failsafe hides it if JS never takes over). SKIP/Esc skip without awarding First Steps; START, CONTINUE and NEW GAME award it.
+- The 5 s splash cap counts from navigation start, but the animation always gets ≥ 1.2 s once JS runs. PRESS START blinks ~1 Hz for 5 s only (WCAG 2.2.2). While up, the splash is a modal (rest inert); afterwards focus moves to the Hero heading.
+- `boot` is "done" at the start of the wipe, so the Hero's SplitText reveal overlaps the 8-strip wipe; Hero letters are hidden only while the splash is playing (no flash otherwise).
+- HUD: BOSS = defeated ∩ current boss ids. Menu is a `<details>` of chapter anchors until the phase-5 overlay. Badges is a read-only count until the phase-7 drawer. Lite is an on/off button overriding "auto". Help (also the `?` key) re-shows the active chapter's hint and is disabled where a stage has no hint yet.
+- No chapter background tween: every section paints its own solid background, so a colour behind them would never show.
+- Avatar path: right gutter only, shown when the gutter is ≥ 58 px (≈ 1330 px+ windows), never in Lite. Known cosmetic overlap with the full-bleed showcase row until phase 6 pins it.
+- Film grain: no `mix-blend-mode` (blending a full-screen fixed layer repainted the page every scroll frame: ≈ 21 ms → 16.7 ms per frame without it).
+- Measured on a production build (headless Chromium, 1440×900): PRESS START at 3.8 s, scroll pass avg 16.6 ms / p95 16.8 ms per frame with 0 frames over 33 ms, CLS 0.0007, no console errors.

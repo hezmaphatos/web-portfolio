@@ -259,8 +259,9 @@ body {
   position: fixed;
   inset: 0;
   z-index: 60;
-  opacity: 0.05;
-  mix-blend-mode: multiply;
+  /* No mix-blend-mode: blending a full-screen fixed layer forces a repaint of everything under
+     it on every scroll frame (measured ≈ 21 ms → 16.7 ms per frame without it). */
+  opacity: 0.045;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -364,4 +365,1038 @@ body {
   --font-display: var(--font-bricolage), ui-sans-serif, sans-serif;
   --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
   --font-code: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+/* ═══ phase 4: splash + HUD ═══════════════════════════════════════════
+ * Boot screen (spec §5.1), HUD (§5), avatar path (§2). Everything animated here moves with
+ * transform / opacity only; CSS only sets the first-paint state GSAP starts from.
+ */
+
+/* lockScroll() sets overflow:hidden on <html>; reserving the scrollbar's gutter keeps the page
+   from jumping sideways (a layout shift) when the splash or a modal locks scrolling. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Headings that receive focus programmatically (after the splash, after a menu jump). */
+[data-focus-target]:focus {
+  outline: none;
+}
+
+/* The splash's lime focus ring must beat the global volt one above (both unlayered). */
+.hk-boot :focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 4px;
+}
+
+/* While the splash is up the reserved scrollbar gutter shows the root background: make it ink. */
+html[data-boot="play"],
+html[data-boot="live"] {
+  background: var(--ink);
+}
+
+/* Component rules live in the components layer (like the .hk-* site classes), so Tailwind
+   utilities such as md:hidden on the same elements still win. */
+@layer components {
+  /* ── Boot screen ─────────────────────────────────────────────────────── */
+
+  /* Hidden unless the pre-paint head script said "play" (JS off → never shown). */
+  .hk-boot {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    overflow: hidden;
+    color: var(--paper);
+    contain: strict;
+  }
+
+  html[data-boot="play"] .hk-boot,
+  html[data-boot="live"] .hk-boot {
+    display: block;
+  }
+
+  /* Failsafe: if the JavaScript never takes over ("live"), get out of the way after 10 s. */
+  html[data-boot="play"] .hk-boot {
+    animation: hk-boot-failsafe 0.3s linear 10s forwards;
+  }
+
+  @keyframes hk-boot-failsafe {
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hk-boot {
+      display: none !important;
+    }
+  }
+
+  /* Ink background cut into 8 strips (each 1 px wider than its share: no seams). Even strips
+   retract upwards, odd ones downwards. */
+  .hk-boot-strips > span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: calc(12.5% + 1px);
+    background: var(--ink);
+    transform-origin: 50% 0%;
+    will-change: transform;
+  }
+
+  .hk-boot-strips > span:nth-child(even) {
+    transform-origin: 50% 100%;
+  }
+
+  /* The CRT's first light: a thin line across the middle. */
+  .hk-boot-beam {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: var(--paper);
+    box-shadow: 0 0 14px 3px color-mix(in oklab, var(--paper) 55%, transparent);
+    transform: scaleX(0);
+  }
+
+  .hk-boot-screen {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.55) 100%), #151515;
+    transform: scaleY(0.004);
+    will-change: transform, opacity;
+  }
+
+  /* Scanlines + grain, both static. */
+  .hk-boot-screen::before,
+  .hk-boot-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hk-boot-screen::before {
+    background: repeating-linear-gradient(
+      to bottom,
+      rgb(243 239 230 / 0.035) 0 1px,
+      transparent 1px 3px
+    );
+  }
+
+  .hk-boot-screen::after {
+    opacity: 0.06;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .hk-boot-flash {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .hk-boot-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 3vh, 2rem);
+    height: 100%;
+    max-width: 64rem;
+    margin-inline: auto;
+    overflow-y: auto; /* short landscape phones: START must stay reachable */
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  }
+
+  @media (min-width: 768px) {
+    .hk-boot-inner {
+      padding: 2rem 2.5rem;
+    }
+  }
+
+  .hk-boot-main {
+    display: grid;
+    gap: clamp(0.75rem, 2.4vh, 1.5rem);
+    margin-block: auto;
+  }
+
+  .hk-boot-wordmark {
+    margin: 0;
+    color: var(--lime);
+    font-size: clamp(0.875rem, 2vw, 1.125rem);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    line-height: 2.75rem;
+    opacity: 0;
+  }
+
+  .hk-boot-skip {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 2px solid var(--paper);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--paper);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+  }
+
+  .hk-boot-skip:hover {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .hk-boot-title {
+    margin: 0;
+    color: var(--paper);
+    font-size: clamp(2.75rem, min(13vw, 17vh), 10rem);
+    line-height: 0.86;
+    text-transform: uppercase;
+    text-shadow: 0.05em 0.05em 0 var(--hot);
+    opacity: 0;
+  }
+
+  .hk-boot-status {
+    display: grid;
+    margin: 0;
+    min-height: 1.5em;
+    color: var(--lime);
+    font-size: clamp(0.75rem, 1.8vw, 1rem);
+  }
+
+  .hk-boot-status > span,
+  .hk-boot-tips > p,
+  .hk-boot-cta > [data-cta] {
+    grid-area: 1 / 1;
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .hk-boot-caret {
+    animation: hk-boot-caret 1s steps(1) infinite;
+  }
+
+  @keyframes hk-boot-caret {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .hk-boot-loader {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    padding-top: 2.75rem; /* room for the runner above the bar */
+    opacity: 0;
+  }
+
+  .hk-boot-track {
+    position: relative;
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 3px;
+    height: 1.5rem;
+    padding: 3px;
+    border: 2px solid var(--paper);
+  }
+
+  .hk-boot-seg {
+    background: rgb(243 239 230 / 0.1);
+  }
+
+  .hk-boot-seg::after {
+    content: "";
+    display: block;
+    height: 100%;
+    background: var(--lime);
+    opacity: 0;
+  }
+
+  .hk-boot-seg.is-on::after {
+    opacity: 1;
+  }
+
+  .hk-boot-runner {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 4px);
+    width: 100%;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .hk-boot-runner > div {
+    width: 30px;
+    margin-left: -15px;
+  }
+
+  .hk-boot-runner svg {
+    display: block;
+  }
+
+  /* Odometer: one reel per digit, moved with translateY in em. */
+  .hk-odo {
+    display: flex;
+    margin: 0;
+    color: var(--paper);
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .hk-odo-col {
+    display: inline-block;
+    height: 1em;
+    overflow: hidden;
+  }
+
+  .hk-odo-reel {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+  }
+
+  .hk-odo-reel > span {
+    display: block;
+    height: 1em;
+    line-height: 1;
+  }
+
+  .hk-odo-unit {
+    margin-left: 0.1em;
+    color: var(--lime);
+  }
+
+  .hk-boot-tips {
+    display: grid;
+    min-height: 1.6em;
+    color: rgb(243 239 230 / 0.8);
+    font-size: clamp(0.6875rem, 1.6vw, 0.875rem);
+    opacity: 0;
+  }
+
+  .hk-boot-tips > p {
+    margin: 0;
+  }
+
+  /* Both CTA groups share one grid cell (no layout shift when one replaces the other); the
+     taller one sets the height, so neither may stretch its buttons to fill it. */
+  .hk-boot-cta {
+    display: grid;
+    align-items: start;
+    margin-top: clamp(0.25rem, 2vh, 1.25rem);
+  }
+
+  .hk-boot-cta > [data-cta] {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    justify-items: start;
+  }
+
+  .hk-boot-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-height: 3.25rem;
+    padding: 0.75rem 1.4rem;
+    border: 2px solid var(--paper);
+    border-radius: 2px;
+    background: var(--hot);
+    color: var(--ink);
+    box-shadow: 5px 5px 0 var(--paper);
+    font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      transform 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+
+  .hk-boot-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0 var(--paper);
+  }
+
+  .hk-boot-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: 1px 1px 0 var(--paper);
+  }
+
+  .hk-boot-btn-ghost {
+    background: transparent;
+    color: var(--paper);
+    box-shadow: none;
+  }
+
+  .hk-boot-btn-ghost:hover {
+    box-shadow: 3px 3px 0 var(--paper);
+  }
+
+  .hk-boot-summary {
+    margin: 0;
+    color: var(--lime);
+    font-size: clamp(0.75rem, 1.8vw, 0.95rem);
+  }
+
+  .hk-boot-hint {
+    max-width: 44ch;
+    margin: 0;
+    color: rgb(243 239 230 / 0.7);
+    font-size: 0.8125rem;
+    opacity: 0;
+  }
+
+  /* ── HUD ─────────────────────────────────────────────────────────────── */
+
+  .hk-hud {
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    z-index: 40;
+    padding: 0.5rem max(0.5rem, env(safe-area-inset-right)) 0 max(0.5rem, env(safe-area-inset-left));
+    pointer-events: none; /* only the chips themselves take the pointer */
+  }
+
+  @media (min-width: 768px) {
+    .hk-hud {
+      padding: 0.75rem 1rem 0;
+    }
+  }
+
+  .hk-hud-row {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .hk-hud-status,
+  .hk-hud-btn,
+  .hk-hud-chip,
+  .hk-hud-panel-pop {
+    pointer-events: auto;
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    font-family: var(--font-silkscreen), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .hk-hud-status {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+    border-radius: 2px 10px 2px 2px;
+    box-shadow: 3px 3px 0 var(--ink);
+    white-space: nowrap;
+  }
+
+  .hk-hud-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    min-height: 2rem;
+    margin: 0;
+    padding: 0 0.55em;
+  }
+
+  .hk-hud-cell:not(:last-child) {
+    border-right: 2px solid var(--ink);
+  }
+
+  .hk-hud-status .hk-mono,
+  .hk-hud-chip .hk-mono {
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .hk-hud-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .hk-hud-btn,
+  .hk-hud-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    margin: 0;
+    padding: 0 0.55em;
+    border-radius: 2px;
+    box-shadow: 3px 3px 0 var(--ink);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .hk-hud-btn {
+    list-style: none; /* <summary> */
+    cursor: pointer;
+    transition:
+      transform 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+
+  .hk-hud-btn::-webkit-details-marker {
+    display: none;
+  }
+
+  .hk-hud-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .hk-hud-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
+  .hk-hud-btn[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.45;
+    transform: none;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .hk-hud-menu[open] > .hk-hud-btn {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* On/off light inside the Sound and Lite toggles (same box in both states). */
+  .hk-hud-led {
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 2px solid var(--ink);
+    background: var(--paper);
+  }
+
+  .hk-hud-led.is-on {
+    background: var(--lime);
+  }
+
+  .hk-xp {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  .hk-xp-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--lime);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    will-change: transform;
+  }
+
+  .hk-xp-center {
+    flex: 0 1 18rem;
+    height: 0.875rem;
+    margin-top: 0.6875rem;
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* Tick marks every 10 %. */
+  .hk-xp-center::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(10% - 2px),
+      var(--ink) calc(10% - 2px) 10%
+    );
+    opacity: 0.3;
+  }
+
+  /* Phones: a 4 px line along the very top edge. */
+  .hk-xp-line {
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    height: 4px;
+    background: var(--ink);
+  }
+
+  /* The menu panel hangs from the HUD row's right edge (the row is the positioned ancestor),
+   so it never runs off a narrow screen. */
+  .hk-hud-panel-pop {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    width: min(19rem, calc(100vw - 1rem));
+    padding: 0.75rem;
+    border-radius: 2px 14px 2px 2px;
+    box-shadow: 6px 6px 0 var(--ink);
+    font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
+    font-size: 0.9375rem;
+    letter-spacing: normal;
+    line-height: 1.3;
+    text-transform: none;
+  }
+
+  .hk-hud-link {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    border-radius: 2px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .hk-hud-link:hover {
+    background: var(--lime);
+  }
+
+  .hk-hud-menu-settings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid var(--ink);
+  }
+
+  /* ── Avatar path ─────────────────────────────────────────────────────── */
+
+  .hk-avatar-path {
+    position: absolute; /* containing block = the initial one: document coordinates */
+    right: 0;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  html[data-lite="true"] .hk-avatar-path {
+    display: none;
+  }
+
+  .hk-avatar-path svg {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+  }
+
+  .hk-avatar-trail {
+    fill: none;
+    stroke: var(--hot);
+    stroke-width: 2;
+    stroke-dasharray: 2 8;
+    stroke-linecap: square;
+    opacity: 0.75;
+  }
+
+  .hk-avatar-pole {
+    fill: var(--ink);
+  }
+
+  .hk-avatar-cloth {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 2;
+  }
+
+  .hk-avatar-cloth.is-done {
+    fill: var(--lime);
+  }
+
+  .hk-avatar-label {
+    fill: var(--hot);
+    font-family: var(--font-silkscreen), ui-monospace, monospace;
+    font-size: 10px;
+  }
+
+  .hk-avatar-walker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: transform;
+  }
+
+  .hk-avatar-walker svg {
+    display: block;
+  }
+}
+
+/* ═══ end phase 4: splash + HUD ═══════════════════════════════════════ */
+
+/* ── phase 4: hints + chapter motion ───────────────────────────────── */
+
+/* Stage hint (components/game/StageHint*.tsx, spec §5.3). The host is a fixed corner slot that
+   ignores the pointer; only the card itself catches it, so the page underneath stays usable. */
+.hk-hint-host {
+  position: fixed;
+  left: max(1.25rem, env(safe-area-inset-left));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 55;
+  width: min(20rem, calc(100vw - 2.5rem));
+  pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+  /* Phones: bottom centre, above the home indicator / safe area. */
+  .hk-hint-host {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    width: min(20rem, calc(100vw - 1.5rem));
+  }
+}
+
+.hk-hint {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 3px; /* room for the pixel frame below */
+  padding: 0.8rem 0.6rem 0.95rem 0.8rem;
+  background: var(--ink);
+  color: var(--paper);
+  /* Pixel frame: four copies of the box shifted 3 px up/down/left/right draw an edge with
+     notched (8-bit) corners; the fifth is the hard drop shadow. */
+  box-shadow:
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    6px 7px 0 0 var(--hot);
+  /* Steps = a few discrete frames, like a HUD element blinking in. */
+  opacity: 0;
+  transform: translateY(14px);
+  visibility: hidden;
+  transition:
+    opacity 200ms steps(4, end),
+    transform 200ms steps(4, end),
+    visibility 0s linear 200ms;
+}
+
+.hk-hint[data-state="open"] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.hk-hint-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  box-shadow:
+    0 -2px 0 0 var(--lime),
+    0 2px 0 0 var(--lime);
+}
+
+.hk-hint-close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--paper);
+  border: 2px solid color-mix(in srgb, var(--paper) 35%, transparent);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.hk-hint-close:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+  transform: rotate(90deg);
+}
+
+/* The auto-close countdown (7 s), paused with the timer while hovered/focused. */
+.hk-hint-timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--lime);
+  transform-origin: left;
+  animation: hk-hint-timer 7s linear forwards;
+}
+
+.hk-hint[data-paused] .hk-hint-timer {
+  animation-play-state: paused;
+}
+
+@keyframes hk-hint-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* The "?" next to a chapter title (components/game/HintButton.tsx). */
+.hk-hint-btn {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: var(--border);
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.hk-hint-btn:hover {
+  transform: translate(-1px, -1px) rotate(-4deg);
+}
+
+.hk-hint-btn:active {
+  transform: translate(2px, 2px);
+}
+
+/* Lite / reduced motion: hints still work, they just fade (no slide, no countdown bar). */
+html[data-lite="true"] .hk-hint {
+  transform: none;
+  transition:
+    opacity 150ms linear,
+    visibility 0s linear 150ms;
+}
+
+html[data-lite="true"] .hk-hint[data-state="open"] {
+  transition-delay: 0s;
+}
+
+html[data-lite="true"] .hk-hint-timer {
+  display: none;
+}
+
+/* Hero: typewriter caret (components/chapters/hero/RoleCycler.tsx) and draggable stickers. */
+.hk-caret {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.85em;
+  margin-left: 0.12em;
+  background: var(--hot);
+  animation: hk-blink 1s steps(1, end) infinite;
+}
+
+@keyframes hk-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+[data-sticker] {
+  cursor: grab;
+}
+
+/* About: the 3D flip card (components/chapters/about/FlipCard.tsx). */
+.hk-flip {
+  position: relative;
+  perspective: 1400px; /* the distance of the "camera": lower = stronger 3D */
+}
+
+.hk-flip-inner {
+  position: relative;
+  transform-style: preserve-3d; /* the faces live in the same 3D space as the card */
+}
+
+.hk-flip-face {
+  backface-visibility: hidden; /* a face turned away from you is not drawn */
+  -webkit-backface-visibility: hidden;
+}
+
+.hk-flip-back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: var(--border);
+  transform: rotateY(180deg); /* starts facing away: the card's back */
+}
+
+.hk-flip-btn {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0.65rem;
+  cursor: pointer;
+}
+
+.hk-flip-tag {
+  padding: 0.35rem 0.5rem;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.65rem;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+  transition: transform 120ms ease-out;
+}
+
+.hk-flip-btn:hover .hk-flip-tag {
+  transform: translate(-2px, -2px) rotate(-3deg);
+}
+
+/* Journey: accordion (components/chapters/journey/*). Without JS there is no data-open: all open. */
+[data-accordion][data-open="false"] [data-accordion-body] {
+  display: none;
+}
+
+.hk-quest-toggle {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Stretch the button's hit area over the whole title block. */
+.hk-quest-toggle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.hk-quest-toggle:focus-visible {
+  outline: none;
+}
+
+.hk-quest-head:has(.hk-quest-toggle:focus-visible) {
+  outline: 3px solid var(--volt);
+  outline-offset: -5px;
+}
+
+.hk-quest-sign {
+  position: absolute;
+  top: 1.1rem;
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: var(--border);
+  background: var(--paper);
+  font-size: 1rem;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+  transition: transform 140ms ease-out;
+}
+
+@media (min-width: 768px) {
+  .hk-quest-sign {
+    top: 1.4rem;
+    right: 1.5rem;
+  }
+}
+
+.hk-quest-head:hover .hk-quest-sign {
+  transform: translate(-1px, -1px) rotate(-6deg);
+}
+
+.hk-quest-toggle[aria-expanded="true"] .hk-quest-sign {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Active period: a lime marker sweeps in behind the year of the entry at the viewport middle
+   (data-active is set by a ScrollTrigger; never present without JS or in Lite). */
+.hk-period-year {
+  position: relative;
+  display: inline-block;
+  isolation: isolate; /* lets the marker sit behind the text but in front of the page */
+}
+
+.hk-period-year::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -0.12em;
+  right: -0.12em;
+  bottom: 0.02em;
+  height: 0.42em;
+  background: var(--lime);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-accordion][data-active] .hk-period-year::before {
+  transform: scaleX(1);
+}
+
+.hk-quest-node {
+  transition: transform 320ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+[data-accordion][data-active] .hk-quest-node {
+  transform: scale(1.35);
+}
+
+@media (max-width: 767.98px) {
+  .hk-period-year::before {
+    transform-origin: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-hint {
+    transform: none;
+    transition:
+      opacity 150ms linear,
+      visibility 0s linear 150ms;
+  }
+
+  .hk-hint[data-state="open"] {
+    transition-delay: 0s;
+  }
+
+  .hk-hint-timer,
+  .hk-caret {
+    animation: none;
+  }
+
+  .hk-period-year::before,
+  .hk-quest-node,
+  .hk-quest-sign,
+  .hk-flip-tag,
+  .hk-hint-btn,
+  .hk-hint-close {
+    transition: none;
+  }
 }

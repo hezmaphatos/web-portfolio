@@ -1,3 +1,6 @@
+import { JourneyMotion } from "@/components/chapters/journey/JourneyMotion";
+import { QuestToggle } from "@/components/chapters/journey/QuestToggle";
+import { HintButton } from "@/components/game/HintButton";
 import { ChapterHeading } from "@/components/ui/ChapterHeading";
 import { Markdown } from "@/components/ui/Markdown";
 import { cn, formatPeriod, label, pad2 } from "@/lib/utils";
@@ -30,14 +33,19 @@ const GROUP_STYLE: Record<Group, { strip: string; node: string }> = {
 };
 
 /**
- * CSS-only filter: the tabs are radio buttons, and while one is checked every entry of another
- * group is hidden (`:has()`), so filtering works without JavaScript. Phase 4 keeps the radios and
- * animates the reorder with Flip. Literal class strings, so Tailwind can see them.
+ * CSS filter: the tabs are radio buttons, and while one is checked every entry of another group
+ * is hidden (`:has()`), so filtering works without JavaScript. Once <JourneyMotion> runs it sets
+ * `data-filter` on the wrapper and the second set of rules takes over: the layout then changes
+ * only when the script says so, after it has recorded the old one for the Flip animation.
+ * Literal class strings, so Tailwind can see them.
  */
 const FILTER_CLASSES =
-  "[&:has(#quest-filter-work:checked)_[data-group]:not([data-group=work])]:hidden " +
-  "[&:has(#quest-filter-organization:checked)_[data-group]:not([data-group=organization])]:hidden " +
-  "[&:has(#quest-filter-education:checked)_[data-group]:not([data-group=education])]:hidden";
+  "[&:not([data-filter]):has(#quest-filter-work:checked)_[data-group]:not([data-group=work])]:hidden " +
+  "[&:not([data-filter]):has(#quest-filter-organization:checked)_[data-group]:not([data-group=organization])]:hidden " +
+  "[&:not([data-filter]):has(#quest-filter-education:checked)_[data-group]:not([data-group=education])]:hidden " +
+  "[&[data-filter=work]_[data-group]:not([data-group=work])]:hidden " +
+  "[&[data-filter=organization]_[data-group]:not([data-group=organization])]:hidden " +
+  "[&[data-filter=education]_[data-group]:not([data-group=education])]:hidden";
 
 const numberFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
@@ -51,13 +59,15 @@ function yearRange(experience: Experience): string {
 }
 
 /**
- * Chapter 3 — QUEST LOG (spec §4.1). Static version (= Lite mode): every entry is open, the rail is
- * full and the metrics show their final values. Hooks for phase 4:
- * - [data-quest-log] the timeline; [data-progress-rail] the fill that scrubs with scroll (scaleY);
- * - [data-period] the left column that becomes the sticky "active period";
- * - [data-type]/[data-group] on each entry for the Flip filter, [data-accordion] for expand/collapse
- *   ([data-accordion-body] is the part that folds away);
- * - [data-counter] counts up to its value.
+ * Chapter 3 — QUEST LOG (spec §4.1). A Server Component; the HTML is the Lite version: every entry
+ * open, the rail full, metrics at their final values, and on desktop each [data-period] is sticky
+ * (pure CSS) so the left column shows the period of the entry you are reading. Client islands:
+ * - <JourneyMotion>: Flip filter over the radio tabs, [data-progress-rail] scrubbed along
+ *   [data-quest-log], `data-active` on the entry at the viewport's middle, [data-counter]s,
+ *   the stage hint;
+ * - <QuestToggle>: turns each title into the accordion button of its [data-accordion] entry
+ *   ([data-accordion-body] is what folds away).
+ * [data-type]/[data-group] mark each entry for the filter.
  */
 export function JourneyChapter({ experiences, section }: Props) {
   const counts = GROUPS.map((group) => ({
@@ -73,8 +83,14 @@ export function JourneyChapter({ experiences, section }: Props) {
       className="hk-chapter"
       data-chapter="journey"
     >
-      <div className={cn("hk-wrap", showFilter && FILTER_CLASSES)}>
-        <ChapterHeading level={3} plain="Journey" section={section} id="journey-title" />
+      <JourneyMotion className={cn("hk-wrap", showFilter && FILTER_CLASSES)} hint={section.hint}>
+        <ChapterHeading
+          level={3}
+          plain="Journey"
+          section={section}
+          id="journey-title"
+          aside={<HintButton hintKey="journey" text={section.hint} className="mt-[0.35em]" />}
+        />
         <Markdown className="-mt-4 mb-12 text-lg md:-mt-6">{section.body}</Markdown>
 
         {showFilter ? (
@@ -117,7 +133,7 @@ export function JourneyChapter({ experiences, section }: Props) {
             ))}
           </ol>
         </div>
-      </div>
+      </JourneyMotion>
     </section>
   );
 }
@@ -126,6 +142,8 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
   const group = GROUP_OF[experience.type];
   const style = GROUP_STYLE[group];
   const titleId = `quest-${experience.id}-title`;
+  const bodyId = `quest-${experience.id}-body`;
+  const hasBody = Boolean(experience.description?.trim()) || experience.bullets.length > 0;
   const current = experience.end_date === null || experience.is_current;
 
   return (
@@ -135,11 +153,13 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
       data-accordion
       className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-4 md:grid-cols-[11rem_3rem_minmax(0,1fr)] md:gap-x-0"
     >
+      {/* Sticky on desktop (inside its own grid row): while you read an entry, its period stays
+          beside it at the viewport's middle. */}
       <div
         data-period
-        className="col-start-2 mb-3 flex items-baseline gap-3 md:col-start-1 md:row-start-1 md:mb-0 md:block md:pr-6 md:text-right"
+        className="col-start-2 mb-3 flex items-baseline gap-3 md:sticky md:top-[calc(50svh-2.5rem)] md:col-start-1 md:row-start-1 md:mb-0 md:block md:self-start md:pr-6 md:text-right"
       >
-        <p className="hk-display hk-condensed text-3xl tracking-[-0.005em] whitespace-nowrap uppercase md:text-[2.6rem]">
+        <p className="hk-period-year hk-display hk-condensed text-3xl tracking-[-0.005em] whitespace-nowrap uppercase md:text-[2.6rem]">
           {yearRange(experience)}
         </p>
         <p className="hk-pixel text-ink-2 text-[0.7rem] md:mt-2">
@@ -151,7 +171,9 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
         aria-hidden="true"
         className="col-start-1 row-start-1 flex justify-center pt-1.5 md:col-start-2 md:pt-3"
       >
-        <span className={cn("border-ink block size-5 rotate-45 border-2", style.node)} />
+        <span
+          className={cn("hk-quest-node border-ink block size-5 rotate-45 border-2", style.node)}
+        />
       </div>
 
       <article
@@ -180,10 +202,14 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
           </span>
         </header>
 
-        <div className="px-4 py-5 md:px-6 md:py-6">
-          <h3 id={titleId} className="text-2xl leading-tight font-bold md:text-[1.75rem]">
-            {experience.title}
-          </h3>
+        {/* Title block: once JS runs, the whole block is the accordion's click target. */}
+        <div className="hk-quest-head relative px-4 py-5 md:px-6 md:py-6">
+          <QuestToggle
+            titleId={titleId}
+            bodyId={hasBody ? bodyId : null}
+            title={experience.title}
+            index={index}
+          />
           <p className="mt-1 text-lg font-semibold">
             {experience.organization}
             {experience.location ? (
@@ -195,8 +221,14 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
               {experience.subtitle}
             </p>
           ) : null}
+        </div>
 
-          <div data-accordion-body>
+        {hasBody ? (
+          <div
+            data-accordion-body
+            id={bodyId}
+            className="-mt-1 px-4 pb-5 md:-mt-2 md:px-6 md:pb-6 [&>*:first-child]:mt-0"
+          >
             <Markdown className="mt-4">{experience.description}</Markdown>
             {experience.bullets.length > 0 ? (
               <ul className="mt-4 max-w-[65ch] space-y-2">
@@ -211,7 +243,7 @@ function QuestEntry({ experience, index }: { experience: Experience; index: numb
               </ul>
             ) : null}
           </div>
-        </div>
+        ) : null}
 
         {experience.metrics.length > 0 ? <Metrics metrics={experience.metrics} /> : null}
       </article>
@@ -240,7 +272,11 @@ function Metrics({ metrics }: { metrics: Metric[] }) {
           <dt className="mt-1.5 text-sm leading-snug font-semibold">{metric.label}</dt>
           <dd className="hk-display hk-condensed text-5xl tracking-[-0.005em] whitespace-nowrap md:text-6xl">
             {metric.prefix}
-            <span data-counter={metric.value}>{numberFormat.format(metric.value)}</span>
+            {/* Screen readers get the final value; the visible copy may count up. */}
+            <span className="sr-only">{numberFormat.format(metric.value)}</span>
+            <span aria-hidden="true" data-counter={metric.value}>
+              {numberFormat.format(metric.value)}
+            </span>
             {metric.suffix}
           </dd>
         </div>
