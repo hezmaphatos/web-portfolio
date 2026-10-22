@@ -9,17 +9,268 @@
  *   so they never leak into the site.
  */
 
+/* ── Public site: neo-arcade tokens (spec §2) ───────────────────────── */
+
 :root {
   --paper: #f3efe6;
+  --paper-2: #e9e3d6; /* recessed paper: insets, rails, placeholders */
   --ink: #111111;
+  --ink-2: #3a3a38; /* secondary text on paper (AA on --paper) */
   --hot: #ff4b2b;
   --volt: #3d5afe;
   --lime: #c6f432;
+
+  --border: 2px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+
+  /* Each chapter sets these; everything inside reads them. */
+  --chapter-bg: var(--paper);
+  --chapter-fg: var(--ink);
+  --accent: var(--hot);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 4rem;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 350;
+  font-optical-sizing: auto;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+/* Everything on the site uses these; the admin has its own (.admin-theme below). */
+@layer components {
+  .hk-chapter {
+    position: relative;
+    background: var(--chapter-bg);
+    color: var(--chapter-fg);
+    padding-block: clamp(4.5rem, 10vw, 9rem);
+    padding-inline: max(1rem, env(safe-area-inset-left));
+    overflow-x: clip;
+  }
+
+  .hk-wrap {
+    width: 100%;
+    max-width: 76rem;
+    margin-inline: auto;
+  }
+
+  /* Display type: big, tight, condensed when it needs to fit. */
+  .hk-display {
+    font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
+    font-weight: 800;
+    font-variation-settings: "opsz" 96;
+    line-height: 0.88;
+    letter-spacing: -0.03em;
+  }
+
+  .hk-condensed {
+    font-variation-settings:
+      "opsz" 96,
+      "wdth" 75;
+  }
+
+  .hk-pixel {
+    font-family: var(--font-silkscreen), ui-monospace, monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .hk-mono {
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hard-edged surface: the basic card of the site. Corners are deliberately uneven. */
+  .hk-panel {
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--border);
+    box-shadow: var(--shadow);
+    border-radius: 2px 14px 2px 2px;
+  }
+
+  .hk-panel-flat {
+    background: var(--paper);
+    color: var(--ink);
+    border: var(--border);
+    border-radius: 2px;
+  }
+
+  .hk-tilt-l {
+    rotate: -1deg;
+  }
+
+  .hk-tilt-r {
+    rotate: 1.2deg;
+  }
+
+  /* Buttons: hard shadow that collapses when pressed. */
+  .hk-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 1.15rem;
+    border: var(--border);
+    border-radius: 2px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+    font-weight: 650;
+    line-height: 1.1;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      transform 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+
+  .hk-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .hk-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+
+  .hk-btn[aria-disabled="true"],
+  .hk-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .hk-btn-hot {
+    background: var(--hot);
+    color: var(--ink);
+  }
+
+  .hk-btn-ink {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+    box-shadow: 3px 3px 0 var(--hot);
+  }
+
+  .hk-btn-ink:hover {
+    box-shadow: 4px 4px 0 var(--hot);
+  }
+
+  /* Small tag. Locked and open chips share the exact same box (no layout shift on unlock). */
+  .hk-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.85rem;
+    padding: 0.15rem 0.6rem;
+    border: var(--border);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* Sticker / tape label. */
+  .hk-sticker {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    border: var(--border);
+    background: var(--lime);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .hk-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: var(--accent);
+  }
+
+  .hk-link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* Long-form text from markdown. */
+  .hk-prose {
+    max-width: 65ch;
+  }
+
+  .hk-prose > * + * {
+    margin-top: 0.9em;
+  }
+
+  .hk-prose a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  .hk-prose ul {
+    list-style: square;
+    padding-left: 1.2em;
+  }
+
+  .hk-prose ol {
+    list-style: decimal;
+    padding-left: 1.4em;
+  }
+
+  .hk-prose code {
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    font-size: 0.9em;
+    padding: 0.05em 0.3em;
+    background: var(--paper-2);
+    border-radius: 2px;
+  }
+
+  .hk-prose strong {
+    font-weight: 700;
+  }
+}
+
+/* Visible focus everywhere on the site (keyboard only). */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--volt);
+  outline-offset: 3px;
+}
+
+/* Film grain over the whole site (SVG noise, opacity ≤ 0.06). */
+.hk-grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hk-skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+}
+
+.hk-skip:focus {
+  top: 1rem;
 }
 
 .admin-theme {
@@ -98,8 +349,17 @@ body {
 
   /* Site tokens as Tailwind colours: bg-paper, text-ink, border-ink, bg-hot … */
   --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
   --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
   --color-hot: var(--hot);
   --color-volt: var(--volt);
   --color-lime: var(--lime);
+  --color-accent: var(--accent);
+  --color-chapter: var(--chapter-bg);
+  --color-chapter-fg: var(--chapter-fg);
+
+  --font-display: var(--font-bricolage), ui-sans-serif, sans-serif;
+  --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
+  --font-code: var(--font-jetbrains), ui-monospace, monospace;
 }
