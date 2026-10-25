@@ -5,7 +5,7 @@ import { Suspense, cache } from "react";
 
 import { ProjectStage } from "@/components/project/ProjectStage";
 import { ADMIN_COOKIE } from "@/lib/admin/session";
-import { getProject, getProjectPreview, getProjects } from "@/lib/api";
+import { getHome, getProject, getProjectPreview, getProjects } from "@/lib/api";
 import type { ProjectDetail } from "@/lib/types";
 
 /**
@@ -124,13 +124,13 @@ function PreviewBanner({ project }: { project: ProjectDetail }) {
 
 async function StageContent({ params }: Params) {
   const { slug } = await params;
-  const { project, preview } = await loadStage(slug);
+  const [{ project, preview }, home] = await Promise.all([loadStage(slug), getHome()]);
   if (!project) notFound();
 
   return (
     <>
       {preview ? <PreviewBanner project={project} /> : null}
-      <ProjectStage project={project} />
+      <ProjectStage project={project} skills={home.skills} />
     </>
   );
 }

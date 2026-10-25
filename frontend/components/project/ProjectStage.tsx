@@ -4,18 +4,23 @@ import { ArrowUpRight, FolderGit2 } from "lucide-react";
 import { contrastOn } from "@/components/ui/GenerativePlaceholder";
 import { Media } from "@/components/ui/Media";
 import { cn, label } from "@/lib/utils";
-import type { ProjectDetail } from "@/lib/types";
+import type { ProjectDetail, Skill } from "@/lib/types";
 
 import { BossBadge } from "./BossBadge";
 import { Gallery } from "./Gallery";
 import { ProjectMeta } from "./ProjectMeta";
 import { ProjectNav } from "./ProjectNav";
 import { StoryBlocks, hasStory } from "./StoryBlocks";
+import { BattleArena } from "./arena/BattleArena";
 import { LockedLink } from "./LockedLink";
 import { TechChips } from "./TechChips";
 import { VideoEmbed, parseYouTube } from "./VideoEmbed";
 
-type Props = { project: ProjectDetail };
+type Props = {
+  project: ProjectDetail;
+  /** Visible game skills (Home payload): the Arena loadout is built from them. */
+  skills: Skill[];
+};
 
 function hostOf(url: string | null): string | null {
   if (!url) return null;
@@ -58,7 +63,7 @@ function SectionTitle({ id, kicker, children }: { id: string; kicker: string; ch
  * [data-stage-title] (SplitText), [data-stage-links] (Open site / Repo lock),
  * [data-preview-deck] (tabs), [data-tech] (locked chips via <TechChips>).
  */
-export function ProjectStage({ project }: Props) {
+export function ProjectStage({ project, skills }: Props) {
   const accent = project.accent_color;
   const onAccent = contrastOn(accent);
   const host = hostOf(project.live_url) ?? `${project.slug}.app`;
@@ -211,7 +216,8 @@ export function ProjectStage({ project }: Props) {
         </div>
       </section>
 
-      {/* Phase 6: the Battle Arena (boss projects only, spec §6.4) goes here. */}
+      {/* Battle Arena (boss projects only, spec §6.4). */}
+      {project.boss.enabled ? <BattleArena project={project} skills={skills} /> : null}
 
       {/* ── Preview Deck (static: screenshots + video) ─────────────────────── */}
       {hasDeck ? (
