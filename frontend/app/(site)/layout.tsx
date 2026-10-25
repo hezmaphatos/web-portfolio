@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { GameChrome } from "@/components/game/GameChrome";
 import { StageHintHost } from "@/components/game/StageHintHost";
+import { ToastHost } from "@/components/game/toast/ToastHost";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { StoreHydrator } from "@/components/providers/StoreHydrator";
 import { getHome } from "@/lib/api";
@@ -56,6 +57,7 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
       <main id="main">{children}</main>
       {modal}
       <StageHintHost />
+      <ToastHost />
       <div className="hk-grain" aria-hidden="true" />
     </SmoothScroll>
   );

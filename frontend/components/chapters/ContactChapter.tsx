@@ -1,6 +1,10 @@
 import { MapPin, Phone, RotateCcw } from "lucide-react";
 import { cacheLife } from "next/cache";
 
+import { ContactForm } from "@/components/chapters/contact/ContactForm";
+import { CopyEmailButton } from "@/components/chapters/contact/CopyEmailButton";
+import { PlayAgainLink } from "@/components/chapters/contact/PlayAgainLink";
+import { HintButton } from "@/components/game/HintButton";
 import { ChapterHeading } from "@/components/ui/ChapterHeading";
 import { Markdown } from "@/components/ui/Markdown";
 import { SocialLinks } from "@/components/ui/SocialLinks";
@@ -12,10 +16,12 @@ type Props = { site: Site; section: Section };
 const FALLBACK_PITCH = "Got a project, a role or a question? Send a message and say hi.";
 
 /**
- * Chapter 7 — FINAL STAGE (spec §4.1) and the site footer. Static version (= Lite mode): the
- * email is the call to action; the contact form (name, email, message, honeypot) with its
- * STAGE CLEAR success and the copy-email toast arrive in phase 5 at [data-contact-form]. Hooks:
- * [data-copy-email] (phase 5 adds the copy button next to it), [data-play-again] (phase 7 rewind).
+ * Chapter 7 — FINAL STAGE (spec §4.1) and the site footer. A Server Component; the email is the
+ * call to action and works without JavaScript. Client islands:
+ * - <CopyEmailButton> under [data-copy-email]: copies the address, toast "Email copied";
+ * - <ContactForm> at [data-contact-form]: name, email, message + honeypot → STAGE CLEAR, the
+ *   Messenger badge and the contact stage hint (hidden without JS: it cannot send without it);
+ * - <PlayAgainLink> [data-play-again]: an anchor to #main, smooth with JS (phase 7: rewind).
  */
 export function ContactChapter({ site, section }: Props) {
   const [mailbox, domain] = site.email ? splitEmail(site.email) : [null, null];
@@ -28,7 +34,13 @@ export function ContactChapter({ site, section }: Props) {
       data-chapter="contact"
     >
       <div className="hk-wrap">
-        <ChapterHeading level={7} plain="Contact" section={section} id="contact-title" />
+        <ChapterHeading
+          level={7}
+          plain="Contact"
+          section={section}
+          id="contact-title"
+          aside={<HintButton hintKey="contact" text={section.hint} className="mt-[0.35em]" />}
+        />
         {section.body ? (
           <Markdown className="-mt-4 text-lg md:-mt-6 md:text-xl">{section.body}</Markdown>
         ) : section.subtitle ? null : (
@@ -50,6 +62,10 @@ export function ContactChapter({ site, section }: Props) {
               <wbr />
               {domain}
             </a>
+            <CopyEmailButton
+              email={site.email}
+              className="mt-7 shadow-[3px_3px_0_var(--lime)] hover:shadow-[4px_4px_0_var(--lime)]"
+            />
           </div>
         ) : null}
 
@@ -78,18 +94,13 @@ export function ContactChapter({ site, section }: Props) {
           </ul>
         </div>
 
-        {/* Phase 5: the contact form (name, email, message, honeypot) + STAGE CLEAR mount here. */}
-        <div data-contact-form />
+        <ContactForm hint={section.hint} className="mt-20 md:mt-28" />
 
         <footer className="border-paper/25 mt-24 flex flex-col gap-6 border-t-2 pt-8 md:mt-32 md:flex-row md:items-center md:justify-between">
-          <a
-            href="#main"
-            data-play-again
-            className="hk-btn w-fit shadow-[3px_3px_0_var(--hot)] hover:shadow-[4px_4px_0_var(--hot)]"
-          >
+          <PlayAgainLink className="hk-btn w-fit shadow-[3px_3px_0_var(--hot)] hover:shadow-[4px_4px_0_var(--hot)]">
             <RotateCcw aria-hidden="true" className="size-4" />
             Play again
-          </a>
+          </PlayAgainLink>
           <div className="hk-mono space-y-1 text-xs leading-relaxed opacity-85 md:text-right">
             <p>Built with Laravel, Next.js, Tailwind CSS, GSAP and Lenis.</p>
             <p>

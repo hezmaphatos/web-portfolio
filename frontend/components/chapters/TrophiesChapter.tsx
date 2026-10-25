@@ -1,31 +1,23 @@
 import { ArrowUpRight } from "lucide-react";
 
+import { awardText } from "@/components/chapters/trophies/award";
+import { AwardOpener } from "@/components/chapters/trophies/AwardOpener";
+import { Medal, MEDALS } from "@/components/chapters/trophies/Medal";
+import { TrophyRoom } from "@/components/chapters/trophies/TrophyRoom";
+import { HintButton } from "@/components/game/HintButton";
 import { ChapterHeading } from "@/components/ui/ChapterHeading";
 import { Markdown } from "@/components/ui/Markdown";
 import { Media } from "@/components/ui/Media";
-import { cn, label } from "@/lib/utils";
-import type { Award, AwardPlacement, Section } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { Award, Section } from "@/lib/types";
 
 type Props = { awards: Award[]; section: Section };
 
-/** Podium placements go on the top shelf; finalists and participants on the lower one. */
-const MEDALS: readonly AwardPlacement[] = ["gold", "silver", "bronze"];
-
-/** Medal disc colours (the palette has no yellow: lime is this site's "gold"). */
-const DISC: Record<AwardPlacement, string> = {
-  gold: "#C6F432",
-  silver: "#F3EFE6",
-  bronze: "#FF4B2B",
-  finalist: "#3D5AFE",
-  participant: "#F3EFE6",
-};
-
-const RANK: Partial<Record<AwardPlacement, string>> = { gold: "1", silver: "2", bronze: "3" };
-
 /**
- * Chapter 6 — TROPHY ROOM (spec §4.1). Static version (= Lite mode): a two-shelf cabinet, every
- * detail is on the card. Gold is the loud one (ink card, medal, bigger); participation is plain.
- * Hooks for phase 5: [data-tilt] gets the 3D hover tilt, [data-award] opens the detail modal.
+ * Chapter 6 — TROPHY ROOM (spec §4.1). A Server Component: a two-shelf cabinet with every detail
+ * on the card (= Lite mode / no JS). Gold is the loud one (ink card, medal, foil glint, bigger);
+ * participation is plain. The client island <TrophyRoom> adds the 3D hover tilt on [data-tilt],
+ * the detail dialog (each title becomes an <AwardOpener> button) and the stage hint.
  */
 export function TrophiesChapter({ awards, section }: Props) {
   const medals = awards.filter((award) => MEDALS.includes(award.placement));
@@ -38,8 +30,14 @@ export function TrophiesChapter({ awards, section }: Props) {
       className="hk-chapter [--accent:var(--ink)] [--chapter-bg:var(--lime)]"
       data-chapter="trophies"
     >
-      <div className="hk-wrap">
-        <ChapterHeading level={6} plain="Awards" section={section} id="trophies-title" />
+      <TrophyRoom awards={awards} hint={section.hint} className="hk-wrap">
+        <ChapterHeading
+          level={6}
+          plain="Awards"
+          section={section}
+          id="trophies-title"
+          aside={<HintButton hintKey="trophies" text={section.hint} className="mt-[0.35em]" />}
+        />
         <Markdown className="-mt-4 mb-12 text-lg md:-mt-6">{section.body}</Markdown>
 
         {medals.length > 0 ? (
@@ -65,7 +63,7 @@ export function TrophiesChapter({ awards, section }: Props) {
             </ul>
           </Shelf>
         ) : null}
-      </div>
+      </TrophyRoom>
     </section>
   );
 }
@@ -96,12 +94,7 @@ function Shelf({
 }
 
 function TrophyCard({ award, featured = false }: { award: Award; featured?: boolean }) {
-  // Participation titles are just the placement ("Participant"): the event is the real headline.
-  const titleIsPlacement =
-    award.title.trim().toLowerCase() === label(award.placement).toLowerCase();
-  const headline = titleIsPlacement ? award.event : award.title;
-  const facts = [titleIsPlacement ? null : award.event, award.issuer].filter(Boolean);
-  const meta = [label(award.placement), award.category].filter(Boolean).join(" · ");
+  const { headline, facts, meta } = awardText(award);
 
   return (
     <article
@@ -109,17 +102,23 @@ function TrophyCard({ award, featured = false }: { award: Award; featured?: bool
       data-award={award.id}
       data-placement={award.placement}
       className={cn(
-        "relative",
+        "hk-trophy relative",
         featured
           ? "hk-panel bg-ink text-paper border-ink px-6 pt-7 pb-6 shadow-[6px_6px_0_var(--hot)] md:px-8 md:pt-9 md:pb-8"
           : "hk-panel-flat px-5 py-5 shadow-[var(--shadow-sm)]",
       )}
     >
       {featured ? (
-        <Medal
-          placement={award.placement}
-          className="absolute -top-9 right-5 w-16 rotate-6 md:right-8 md:w-20"
-        />
+        <>
+          {/* Foil glint: a hard-edged stripe the tilt sweeps across (decorative, gold only). */}
+          <span aria-hidden="true" className="hk-foil-track">
+            <span data-foil className="hk-foil" />
+          </span>
+          <Medal
+            placement={award.placement}
+            className="hk-trophy-medal absolute -top-9 right-5 w-16 rotate-6 md:right-8 md:w-20"
+          />
+        </>
       ) : null}
 
       <p className={cn("hk-pixel text-xs", featured ? "text-lime pr-20" : "text-ink-2")}>{meta}</p>
@@ -131,7 +130,7 @@ function TrophyCard({ award, featured = false }: { award: Award; featured?: bool
             : "text-xl leading-tight font-bold",
         )}
       >
-        {headline}
+        <AwardOpener awardId={award.id}>{headline}</AwardOpener>
       </h3>
       {facts.length > 0 ? (
         <p className={cn("mt-3 font-semibold", featured && "text-lg")}>{facts.join(" · ")}</p>
@@ -168,11 +167,12 @@ function TrophyCard({ award, featured = false }: { award: Award; featured?: bool
           <span />
         )}
         {award.url ? (
+          // Above the opener's stretched hit area (z-index), so the link stays clickable.
           <a
             href={award.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hk-btn min-h-0 px-3 py-1.5 text-sm"
+            className="hk-btn relative z-[2] min-h-0 px-3 py-1.5 text-sm"
           >
             Details
             <ArrowUpRight aria-hidden="true" className="size-4" />
@@ -181,38 +181,5 @@ function TrophyCard({ award, featured = false }: { award: Award; featured?: bool
         ) : null}
       </div>
     </article>
-  );
-}
-
-/** Ribbon + disc. Decorative: the placement is also written on the card. */
-function Medal({ placement, className }: { placement: AwardPlacement; className?: string }) {
-  const rank = RANK[placement];
-  return (
-    <svg
-      viewBox="0 0 64 84"
-      aria-hidden="true"
-      focusable="false"
-      className={cn("overflow-visible drop-shadow-[3px_3px_0_var(--hot)]", className)}
-    >
-      <g stroke="#111111" strokeWidth="3" strokeLinejoin="round">
-        <path d="M14 2 H30 L38 34 L24 38 Z" fill="#FF4B2B" />
-        <path d="M50 2 H34 L26 34 L40 38 Z" fill="#3D5AFE" />
-        <circle cx="32" cy="58" r="23" fill={DISC[placement]} strokeWidth="4" />
-        <circle cx="32" cy="58" r="15" fill="none" strokeWidth="2" strokeDasharray="3 3" />
-      </g>
-      {rank ? (
-        <text
-          x="32"
-          y="66"
-          textAnchor="middle"
-          fill="#111111"
-          fontSize="22"
-          fontWeight="700"
-          className="hk-pixel"
-        >
-          {rank}
-        </text>
-      ) : null}
-    </svg>
   );
 }

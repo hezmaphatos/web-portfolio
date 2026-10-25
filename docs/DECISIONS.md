@@ -101,3 +101,18 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - Avatar path: right gutter only, shown when the gutter is ≥ 58 px (≈ 1330 px+ windows), never in Lite. Known cosmetic overlap with the full-bleed showcase row until phase 6 pins it.
 - Film grain: no `mix-blend-mode` (blending a full-screen fixed layer repainted the page every scroll frame: ≈ 21 ms → 16.7 ms per frame without it).
 - Measured on a production build (headless Chromium, 1440×900): PRESS START at 3.8 s, scroll pass avg 16.6 ms / p95 16.8 ms per frame with 0 frames over 33 ms, CLS 0.0007, no console errors.
+
+## Phase 5 — Skill Tree, Trophy Room, Contact, menu overlay
+
+- Skill Tree nodes stay the full phase-3 cards (readable without JS); the Inventory + 4 slots + Training Dummy live in a separate "Armory" panel below the tree.
+- An empty saved loadout means "default" (4 highest damage); the first change writes the shown loadout, then applies the edit, and unlocks `tinkerer`. The last equipped skill can't be unequipped (an empty list would silently bring back the default four); "Default loadout" resets.
+- The compact-list rule is visible: a drop on any empty slot lands in the first empty one.
+- Drag-to-equip = GSAP Draggable on invisible proxies + a cloned ghost; mouse/fine pointer only, never in Lite. Touch uses tap → native `<dialog>` bottom sheet; desktop keyboard uses an Equip popover (the button alternative to dragging).
+- Training Dummy math is only `lib/battle` (`createBattle`/`fire`/`autoFireStep`/`resetBattle`); a round runs while the dummy is ≥ 50 % in view; keys 1–4/A act only then (never in inputs, dialogs, with modifiers or key repeat). Auto-fire with the default loadout KOs at exactly 3.5 s, matching `clearTime`.
+- Hovering/pinning a skill marks matching `[data-project-id]` cards with `data-highlight` (lime outline); cards are not restructured.
+- First-paint CSS keyed on `html[data-lite="false"]` collapses phone skill branches and Journey accordions (all but the first) before hydration — without it Journey shrank by ~570 px after React ran (CLS 0.39 on deep links → 0.002).
+- Trophy dialog = measured grow-from-card animation (Motion `animate`, transform/opacity) rather than `layoutId`, so cards stay server-rendered and the tilt doesn't conflict. Card titles become opener buttons only once JS runs.
+- Site toasts (`components/game/toast`): one polite live region, top-right under the HUD (never collides with the bottom-left hint card), max 3, kept live while dialogs make the page inert.
+- Contact form is hidden without JS (a plain submit would put the fields in the URL); the mailto link stays. Client validation mirrors the API loosely; API 422s map back to fields; 429 / network / 5xx get friendly messages. Success → STAGE CLEAR (same grid cell height, no shift) + `messenger` badge.
+- Menu overlay: GSAP clip-path circle from the Menu button (fade in Lite), lives inside the HUD layer (HUD stays on top), contained focus, Esc/focus return, chapter links are next/link `/#key`; no-JS fallback via CSS `:target`. While the menu or a dialog is open, `<html data-overlay>` hides the hint card.
+- Measured on a production build: scroll pass avg 16.6 ms / p95 16.8 ms per frame (0 frames > 33 ms), CLS 0.0033, no console errors.

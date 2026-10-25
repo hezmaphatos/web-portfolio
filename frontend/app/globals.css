@@ -786,8 +786,7 @@ html[data-boot="live"] {
 
   .hk-hud-status,
   .hk-hud-btn,
-  .hk-hud-chip,
-  .hk-hud-panel-pop {
+  .hk-hud-chip {
     pointer-events: auto;
     background: var(--paper);
     color: var(--ink);
@@ -850,15 +849,10 @@ html[data-boot="live"] {
   }
 
   .hk-hud-btn {
-    list-style: none; /* <summary> */
     cursor: pointer;
     transition:
       transform 120ms ease-out,
       box-shadow 120ms ease-out;
-  }
-
-  .hk-hud-btn::-webkit-details-marker {
-    display: none;
   }
 
   .hk-hud-btn:hover {
@@ -876,11 +870,6 @@ html[data-boot="live"] {
     opacity: 0.45;
     transform: none;
     box-shadow: 3px 3px 0 var(--ink);
-  }
-
-  .hk-hud-menu[open] > .hk-hud-btn {
-    background: var(--ink);
-    color: var(--paper);
   }
 
   /* On/off light inside the Sound and Lite toggles (same box in both states). */
@@ -942,37 +931,7 @@ html[data-boot="live"] {
     background: var(--ink);
   }
 
-  /* The menu panel hangs from the HUD row's right edge (the row is the positioned ancestor),
-   so it never runs off a narrow screen. */
-  .hk-hud-panel-pop {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 0.5rem);
-    width: min(19rem, calc(100vw - 1rem));
-    padding: 0.75rem;
-    border-radius: 2px 14px 2px 2px;
-    box-shadow: 6px 6px 0 var(--ink);
-    font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
-    font-size: 0.9375rem;
-    letter-spacing: normal;
-    line-height: 1.3;
-    text-transform: none;
-  }
-
-  .hk-hud-link {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    padding: 0.5rem;
-    border-radius: 2px;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .hk-hud-link:hover {
-    background: var(--lime);
-  }
-
+  /* Sound / Lite inside the menu overlay on phones (restyled in the phase-5 block). */
   .hk-hud-menu-settings {
     display: flex;
     flex-wrap: wrap;
@@ -1279,6 +1238,16 @@ html[data-lite="true"] .hk-hint-timer {
   display: none;
 }
 
+/* First paint with motion on (the pre-paint script set data-lite="false", so JS will run):
+   collapse every entry but the first already, exactly as QuestToggle will after hydration.
+   Otherwise the log shrinks by ~570 px once React runs and a deep link below it jumps (CLS). */
+html[data-lite="false"]
+  [data-quest-log]
+  > [data-accordion]:not([data-open]):not(:first-child)
+  [data-accordion-body] {
+  display: none;
+}
+
 .hk-quest-toggle {
   font: inherit;
   color: inherit;
@@ -1400,3 +1369,1419 @@ html[data-lite="true"] .hk-hint-timer {
     transition: none;
   }
 }
+
+/* ── phase 5: trophies, contact, menu ─────────────────────────────────
+ * Toasts (components/game/toast/*), the trophy room tilt + detail dialog
+ * (components/chapters/trophies/*), the contact form + STAGE CLEAR (components/chapters/contact/*)
+ * and the HUD chapter-map overlay (components/game/hud/{HudMenu,MenuOverlay}.tsx).
+ * Motion is transform / opacity / clip-path only; colour changes are instant.
+ */
+
+/* Toasts: top right under the HUD row (top centre on phones); never take the pointer. */
+.hk-toast-host {
+  position: fixed;
+  z-index: 58; /* over the hint card (55) and a dialog (56), under the grain (60) */
+  top: 3.5rem;
+  left: max(0.75rem, env(safe-area-inset-left));
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .hk-toast-host {
+    top: 4rem;
+    left: auto;
+    right: 1rem;
+    justify-content: flex-end;
+  }
+}
+
+.hk-toast-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(20rem, 100%);
+}
+
+@media (min-width: 768px) {
+  .hk-toast-list {
+    align-items: flex-end;
+  }
+}
+
+.hk-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 100%;
+  padding: 0.4rem 0.8rem 0.4rem 0.4rem;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 2px 10px 2px 2px;
+  box-shadow: 4px 4px 0 var(--lime);
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.hk-toast-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.hk-toast-text {
+  padding-block: 0.3rem;
+}
+
+/* ── Trophy room ───────────────────────────────────────────────────── */
+
+/* The tilt (GSAP rotationX/Y + perspective on the card) keeps the medal in its own plane, a bit
+   in front of the card, so it parallaxes against it. Flat (no effect) without a transform. */
+.hk-trophy[data-tilt] {
+  transform-style: preserve-3d;
+}
+
+.hk-trophy-medal {
+  translate: 0 0 36px;
+}
+
+/* Gold foil glint: a hard-edged double stripe swept by the pointer (xPercent), shown on hover. */
+.hk-foil-track {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.hk-foil {
+  position: absolute;
+  top: -15%;
+  bottom: -15%;
+  left: 0;
+  width: 22%;
+  opacity: 0;
+}
+
+.hk-foil::before,
+.hk-foil::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--paper);
+  transform: skewX(-18deg);
+}
+
+.hk-foil::before {
+  left: 0;
+  width: 70%;
+  opacity: 0.1;
+}
+
+.hk-foil::after {
+  left: 85%;
+  width: 18%;
+  opacity: 0.16;
+}
+
+/* The card title as the dialog's opener: looks like the text it replaced, but its ::after
+   covers the whole card (the article is the positioned box). */
+.hk-award-open {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.hk-award-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.hk-award-open:focus-visible {
+  outline: none;
+}
+
+.hk-trophy:has(.hk-award-open:focus-visible) {
+  outline: 3px solid var(--volt);
+  outline-offset: 4px;
+}
+
+.hk-trophy:has(.hk-award-open:hover) .hk-award-open,
+.hk-trophy:has(.hk-award-open:focus-visible) .hk-award-open {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.14em;
+  text-decoration-color: var(--hot);
+}
+
+/* Detail dialog (portal on <body>): solid dimmed backdrop (no blur), hard-edged panel. */
+.hk-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+}
+
+.hk-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 84%, transparent);
+}
+
+.hk-modal-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  pointer-events: none; /* clicks around the panel reach the backdrop (= close) */
+}
+
+.hk-modal-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(54rem, 100%);
+  max-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px 18px 2px 2px;
+  box-shadow: 8px 8px 0 var(--hot);
+  pointer-events: auto;
+  transform-origin: 50% 50%;
+}
+
+.hk-modal-panel.is-gold {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--lime);
+  box-shadow: 8px 8px 0 var(--lime);
+}
+
+.hk-modal-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.75rem 1.25rem 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .hk-modal-body {
+    padding: 2.5rem 2.5rem 2.25rem;
+  }
+}
+
+.hk-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.hk-modal-close:hover {
+  transform: translate(-1px, -1px) rotate(-6deg);
+}
+
+.hk-modal-close:active {
+  transform: translate(2px, 2px);
+}
+
+.hk-modal-panel.is-gold .hk-modal-close {
+  background: var(--lime);
+  box-shadow: 3px 3px 0 var(--hot);
+}
+
+/* The medal is pinned to the certificate's top-left corner (gold only). */
+.hk-modal-medal {
+  position: absolute;
+  top: -1.4rem;
+  left: -0.9rem;
+  z-index: 1;
+  width: 3.75rem;
+  pointer-events: none;
+}
+
+.hk-modal-panel.is-gold :focus-visible {
+  outline-color: var(--lime);
+}
+
+/* ── Contact: form + STAGE CLEAR ───────────────────────────────────── */
+
+/* Without JavaScript the form cannot send and there is nothing to copy with: the mailto link
+   above is the way (data-lite is set by the pre-paint script, i.e. only when JS runs). */
+html:not([data-lite]) [data-contact-form],
+html:not([data-lite]) .hk-copy-email {
+  display: none;
+}
+
+.hk-contact {
+  display: grid;
+  gap: 2.25rem;
+}
+
+@media (min-width: 768px) {
+  .hk-contact {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 2.5rem;
+  }
+}
+
+/* Form and STAGE CLEAR share one grid cell: the taller one sets the height, nothing moves. */
+.hk-stack {
+  display: grid;
+}
+
+.hk-stack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.hk-contact-form {
+  position: relative;
+  padding: 1.5rem 1.25rem 1.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px 14px 2px 2px;
+  box-shadow: 6px 6px 0 var(--hot);
+}
+
+@media (min-width: 768px) {
+  .hk-contact-form {
+    padding: 2rem 2rem 1.75rem;
+  }
+}
+
+.hk-field {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.hk-field-label {
+  font-size: 0.75rem;
+}
+
+.hk-input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--paper-2);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 var(--ink);
+  font: inherit;
+  font-size: 1rem; /* ≥ 16 px: no zoom-on-focus on iOS */
+  font-weight: 450;
+  line-height: 1.4;
+}
+
+.hk-input:focus {
+  background: var(--paper);
+}
+
+.hk-input[aria-invalid="true"] {
+  border-color: var(--hot);
+  box-shadow: 3px 3px 0 var(--hot);
+}
+
+.hk-textarea {
+  min-height: 9.5rem;
+  resize: vertical;
+}
+
+/* One line is reserved under every field, so an error never pushes the form around. */
+.hk-field-error {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 1.6rem;
+  margin: 0;
+  padding-top: 0.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.hk-field-error-mark {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--hot);
+  outline: 2px solid var(--ink);
+}
+
+/* Off-screen, not display:none (some bots skip hidden inputs); never focused, never read. */
+.hk-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Sending: busy, not disabled (keeps its look and its focus). */
+.hk-send[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 1;
+}
+
+.hk-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.hk-dots > span {
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+  animation: hk-dot 0.9s steps(1, end) infinite;
+}
+
+.hk-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.hk-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes hk-dot {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.hk-form-alert {
+  flex: 1 1 16rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  border-left: 8px solid var(--hot);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* STAGE CLEAR: a lime result card in the form's place. */
+.hk-clear {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1.75rem 1.25rem;
+  background: var(--lime);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px 14px 2px 2px;
+  box-shadow: 6px 6px 0 var(--hot);
+  rotate: -0.6deg;
+}
+
+@media (min-width: 768px) {
+  .hk-clear {
+    padding: 1.5rem 2.25rem;
+  }
+}
+
+.hk-clear-title {
+  margin-top: 0.9rem;
+  font-size: clamp(2.5rem, 8.5vw, 4.75rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-shadow: 0.06em 0.06em 0 var(--hot);
+}
+
+.hk-clear-bar {
+  display: block;
+  width: min(100%, 24rem);
+  height: 0.5rem;
+  margin-top: 1rem;
+  background: var(--ink);
+  transform-origin: 0 50%;
+}
+
+.hk-clear-burst {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.hk-clear-pixel {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.hk-clear-stat {
+  padding: 0.3rem 0.55rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+/* ── HUD menu: chapter-map overlay ─────────────────────────────────── */
+
+/* While the menu or a dialog locks scrolling, the reserved scrollbar gutter shows the root
+   background: match it to what covers the page (as the splash does). */
+html[data-overlay="menu"] {
+  background: var(--ink);
+}
+
+html[data-overlay="dialog"] {
+  background: color-mix(in srgb, var(--ink) 84%, var(--paper));
+}
+
+/* A hint whose 600 ms timer was already running when the menu / dialog opened would float over
+   it with an inert ✕: keep the card out of sight until the overlay closes (its timer runs on). */
+html[data-overlay] .hk-hint-host,
+html[data-overlay] .hk-hint {
+  visibility: hidden;
+}
+
+/* It lives inside the HUD (position: fixed; z-index: 40 → its own stacking context): z-index -1
+   puts it above the page and under the HUD row, which stays on top as the "pause" bar. */
+.hk-menu {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ink);
+  color: var(--paper);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hk-menu[data-state="open"] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.hk-menu[data-state="closing"] {
+  visibility: visible;
+}
+
+.hk-menu-toggle[aria-expanded="true"] {
+  background: var(--lime);
+}
+
+/* No JavaScript: the button cannot toggle, so an anchor to #hk-menu opens the panel (:target)
+   and a "Close" link inside it leaves again. */
+.hk-menu-nojs {
+  display: none;
+}
+
+html:not([data-lite]) .hk-menu-toggle {
+  display: none;
+}
+
+html:not([data-lite]) .hk-menu-nojs {
+  display: inline-flex;
+}
+
+html:not([data-lite]) .hk-menu:target {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.hk-menu-inner {
+  width: 100%;
+  max-width: 76rem;
+  min-height: 100%;
+  margin-inline: auto;
+  padding: 4.25rem max(1rem, env(safe-area-inset-right)) 2.5rem max(1rem, env(safe-area-inset-left));
+}
+
+@media (min-width: 768px) {
+  .hk-menu-inner {
+    padding: 6.5rem 2rem 3rem;
+  }
+}
+
+.hk-menu-list {
+  border-top: 2px solid color-mix(in srgb, var(--paper) 18%, transparent);
+}
+
+.hk-menu-link {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 0.75rem;
+  padding: 0.55rem 0.25rem 0.6rem;
+  border-bottom: 2px solid color-mix(in srgb, var(--paper) 18%, transparent);
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (min-width: 768px) {
+  .hk-menu-link {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+    column-gap: 1.25rem;
+    padding-block: 0.7rem 0.75rem;
+  }
+}
+
+.hk-menu-link:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: -3px;
+}
+
+.hk-menu-num {
+  color: var(--lime);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hk-menu-title {
+  font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
+  font-size: clamp(1.6rem, 4.6vw, 3.5rem);
+  font-weight: 800;
+  font-variation-settings:
+    "opsz" 96,
+    "wdth" 75;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hk-menu-plain {
+  font-size: 0.625rem;
+  opacity: 0.75;
+}
+
+@media (min-width: 768px) {
+  .hk-menu-plain {
+    font-size: 0.75rem;
+  }
+}
+
+.hk-menu-link:hover .hk-menu-title,
+.hk-menu-link:focus-visible .hk-menu-title {
+  color: var(--lime);
+  transform: translateX(0.5rem);
+}
+
+.hk-menu-link[aria-current] .hk-menu-num {
+  color: var(--hot);
+}
+
+.hk-menu-here {
+  grid-column: 2 / -1;
+  justify-self: start;
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.4rem;
+  background: var(--hot);
+  color: var(--ink);
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+.hk-menu-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 1.75rem;
+}
+
+.hk-menu-extra .hk-btn {
+  box-shadow: 3px 3px 0 var(--lime);
+}
+
+.hk-menu-extra .hk-btn:hover {
+  box-shadow: 4px 4px 0 var(--lime);
+}
+
+.hk-menu-extra .hk-btn[aria-current="page"] {
+  background: var(--hot);
+}
+
+/* Phones: Sound / Lite live here (the HUD row has no room for them). Layout comes from the
+   phase-4 rule in the components layer, so its md:hidden utility still wins on wide screens. */
+.hk-menu .hk-hud-menu-settings {
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid color-mix(in srgb, var(--paper) 18%, transparent);
+}
+
+.hk-menu .hk-hud-btn {
+  box-shadow: 3px 3px 0 var(--lime);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-menu-title,
+  .hk-modal-close {
+    transition: none;
+  }
+
+  .hk-dots > span {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+html[data-lite="true"] .hk-menu-title {
+  transition: none;
+}
+
+/* ── phase 5: skill tree ───────────────────────────────────────────── */
+
+/* Pointer-specific help text (pure CSS: no hydration mismatch). */
+.hk-only-coarse {
+  display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .hk-only-fine {
+    display: none;
+  }
+
+  .hk-only-coarse {
+    display: inline;
+  }
+}
+
+/* Tree: a twig from the trunk to each node, with a junction dot (components/chapters/skills/*). */
+.hk-twig::before,
+.hk-twig::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+
+.hk-twig::before {
+  top: 1.75rem;
+  left: -1.5rem;
+  width: 1.5rem;
+  height: 2px;
+}
+
+.hk-twig::after {
+  top: calc(1.75rem - 4px);
+  left: calc(-1.5rem - 6px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.hk-twig:has(> [data-active])::before {
+  top: calc(1.75rem - 1px);
+  height: 4px;
+  background: var(--hot);
+}
+
+.hk-twig:has(> [data-active])::after {
+  background: var(--hot);
+}
+
+/* Skill node: lifts (translate, not transform: Draggable owns transform) when lit. */
+.hk-node {
+  cursor: pointer;
+  translate: 0 0;
+  transition: translate 160ms ease-out;
+}
+
+.hk-node[data-active] {
+  translate: -3px -3px;
+  box-shadow: 6px 6px 0 var(--hot);
+}
+
+.hk-node[data-active] [data-used-in] .hk-chip {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.hk-node:has(.hk-node-btn[aria-pressed="true"])::before {
+  content: "Selected";
+  position: absolute;
+  top: -0.7rem;
+  left: 0.75rem;
+  z-index: 2;
+  padding: 0.25rem 0.4rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* The node's pin button, stretched over the card (the "Used in" links sit above it). */
+.hk-node-btn {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: inherit;
+}
+
+.hk-node-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.hk-node-btn:focus-visible {
+  outline: none;
+}
+
+.hk-node:has(.hk-node-btn:focus-visible) {
+  outline: 3px solid var(--volt);
+  outline-offset: 3px;
+}
+
+/* Project cards that use the lit skill (Level Select). */
+[data-project-id][data-highlight] {
+  outline: 4px solid var(--lime);
+  outline-offset: 5px;
+}
+
+/* Phones: each branch is a collapsible category card. */
+.hk-branch-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hk-branch-toggle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.hk-branch-toggle:focus-visible {
+  outline: none;
+}
+
+.hk-branch-head:has(.hk-branch-toggle:focus-visible) {
+  outline: 3px solid var(--volt);
+  outline-offset: 3px;
+}
+
+.hk-branch-sign {
+  position: absolute;
+  top: 50%;
+  right: 0.7rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-top: -1rem;
+  border: var(--border);
+  background: var(--paper);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.hk-branch-toggle[aria-expanded="true"] .hk-branch-sign {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@media (max-width: 767.98px) {
+  .hk-branch-head {
+    position: relative;
+    min-height: 3.5rem;
+    padding: 0.6rem 3.25rem 0.6rem 0.85rem;
+    border: var(--border);
+    border-radius: 2px;
+    background: var(--paper);
+    box-shadow: var(--shadow-sm);
+  }
+
+  [data-branch-body] {
+    margin-left: 24px;
+  }
+
+  [data-branch][data-open="false"] [data-branch-body] {
+    display: none;
+  }
+
+  /* First paint already matches the hydrated default (first branch open, the rest closed; all
+     open in Lite), so collapsing causes no layout shift. data-lite comes from the pre-paint head
+     script: without JavaScript it is absent and every branch stays open. */
+  html[data-lite="false"] [data-branch]:not(:first-child):not([data-open]) [data-branch-body] {
+    display: none;
+  }
+}
+
+/* Armory: loadout slots. */
+.hk-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 9.25rem;
+  padding: 0.7rem 0.75rem 0.8rem;
+  border: 2px solid;
+  border-radius: 2px;
+  translate: 0 0;
+  transition: translate 140ms ease-out;
+}
+
+@media (min-width: 1024px) {
+  .hk-slot {
+    height: 8.25rem;
+  }
+}
+
+.hk-slot-filled {
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--lime);
+}
+
+.hk-slot-empty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--paper) 55%, transparent);
+  color: var(--paper);
+}
+
+.hk-slot-key {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: var(--border);
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.hk-unequip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.15rem -0.2rem 0 0;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hk-unequip:hover {
+  background: var(--hot);
+}
+
+.hk-unequip[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--paper);
+}
+
+/* While a card is dragged, every slot shows it is a target; the one under the pointer rises. */
+[data-dragging] .hk-slot {
+  outline: 2px dashed var(--lime);
+  outline-offset: 3px;
+}
+
+.hk-slot[data-drop-target] {
+  translate: 0 -5px;
+  outline: 3px solid var(--lime);
+}
+
+[data-drag-source] {
+  opacity: 0.35;
+}
+
+.hk-drag-ghost {
+  position: fixed !important;
+  z-index: 75;
+  margin: 0 !important;
+  pointer-events: none;
+  box-shadow: 8px 8px 0 var(--hot) !important;
+}
+
+.hk-drag-proxy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Armory: inventory cards. */
+.hk-item {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0.6rem 0.7rem 0.7rem;
+  border: 2px solid color-mix(in srgb, var(--paper) 40%, transparent);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+  translate: 0 0;
+  transition: translate 120ms ease-out;
+}
+
+.hk-item:hover,
+.hk-item[aria-expanded="true"] {
+  translate: -2px -2px;
+  border-color: var(--paper);
+  box-shadow: 3px 3px 0 var(--lime);
+}
+
+.hk-item[data-equipped] {
+  border-color: var(--lime);
+}
+
+.hk-item-slot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+/* Equip menu: popover (desktop) and bottom sheet (phones). */
+.hk-equip-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: min(18.5rem, calc(100vw - 2rem));
+  padding: 0.85rem;
+  border: var(--border);
+  border-radius: 2px 14px 2px 2px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 6px 6px 0 var(--lime);
+}
+
+.hk-equip-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.45rem 0.5rem;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hk-equip-opt:hover {
+  background: var(--lime);
+}
+
+.hk-equip-opt[aria-disabled="true"] {
+  background: var(--paper-2);
+  color: var(--ink-2);
+  cursor: not-allowed;
+}
+
+.hk-equip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.6rem;
+  border: 2px solid currentColor;
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.hk-equip-link:hover {
+  border-color: var(--ink);
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.hk-equip-link[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hk-equip-x {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: var(--border);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.hk-equip-x:hover {
+  background: var(--hot);
+}
+
+.hk-sheet:modal {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: min(34rem, 100%);
+  max-height: 100dvh;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overflow: visible;
+}
+
+.hk-sheet::backdrop {
+  background: rgb(17 17 17 / 0.6);
+}
+
+.hk-sheet-panel {
+  position: relative;
+  padding: 0.6rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border: var(--border);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--paper);
+  box-shadow: 0 -5px 0 var(--lime);
+}
+
+.hk-sheet-grip {
+  display: block;
+  width: 3rem;
+  height: 5px;
+  margin: 0 auto 0.75rem;
+  background: var(--ink);
+}
+
+/* Training Dummy. */
+.hk-dummy {
+  position: relative;
+  align-self: start;
+  padding: 1rem;
+  border: var(--border);
+  border-radius: 2px 14px 2px 2px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 6px 6px 0 var(--lime);
+}
+
+@media (min-width: 640px) {
+  .hk-dummy {
+    padding: 1.25rem;
+  }
+}
+
+/* Full-width dummy (tablet, small laptop): stage left, controls right. */
+@media (min-width: 768px) and (max-width: 1279.98px) {
+  .hk-dummy-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+}
+
+.hk-dummy-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 11rem;
+  overflow: hidden;
+  border: var(--border);
+  background:
+    linear-gradient(var(--ink), var(--ink)) bottom / 100% 2px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 22px, rgb(17 17 17 / 0.07) 22px 24px),
+    var(--paper-2);
+}
+
+.hk-dummy-sprite {
+  height: 8.75rem;
+  margin-bottom: 2px;
+  transform-origin: 50% 100%;
+  rotate: 0deg;
+  transition: rotate 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+[data-ko] .hk-dummy-sprite {
+  rotate: 16deg;
+}
+
+.hk-dummy-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hk-dmg {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  translate: -50% 0;
+  white-space: nowrap;
+}
+
+.hk-dmg-amount {
+  color: var(--hot);
+  font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.hk-dmg-name {
+  margin-top: 3px;
+  padding: 2px 5px;
+  background: var(--ink);
+  color: var(--lime);
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hk-dummy-stamp {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  padding: 0.4rem 0.65rem 0.35rem;
+  border: var(--border);
+  background: var(--hot);
+  color: var(--ink);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transform: rotate(-8deg);
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+[data-ko] .hk-dummy-stamp {
+  opacity: 1;
+}
+
+.hk-hp {
+  position: relative;
+  flex: 1;
+  height: 1.15rem;
+  overflow: hidden;
+  border: var(--border);
+  background: var(--paper);
+}
+
+.hk-hp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc(10% - 2px),
+    rgb(17 17 17 / 0.55) calc(10% - 2px) 10%
+  );
+}
+
+.hk-hp-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--hot);
+  transform-origin: left;
+}
+
+.hk-fire {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  height: 5.125rem; /* two lines of attack name + the key row: a saved loadout never resizes it */
+  padding: 0.45rem 0.55rem 0.7rem;
+  text-align: left;
+  overflow: hidden;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  translate: 0 0;
+  transition: translate 100ms ease-out;
+}
+
+.hk-fire[aria-disabled="true"] {
+  cursor: default;
+}
+
+/* The slot's key (1–4), next to its damage. */
+.hk-fire-key {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.hk-fire[data-ready] {
+  background: var(--lime);
+}
+
+.hk-fire[data-ready]:hover {
+  translate: -1px -1px;
+}
+
+.hk-fire:active {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.hk-cd {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  background: rgb(17 17 17 / 0.14);
+}
+
+.hk-cd-bar {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform-origin: left;
+}
+
+.hk-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.hk-auto kbd {
+  padding: 0.15rem 0.3rem;
+  border: 2px solid var(--ink);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.hk-auto-state {
+  width: 2.5rem;
+  padding: 0.3rem 0;
+  background: var(--paper-2);
+  font-size: 0.6rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.hk-auto[aria-pressed="true"] {
+  background: var(--lime);
+}
+
+.hk-auto[aria-pressed="true"] .hk-auto-state {
+  background: var(--ink);
+  color: var(--lime);
+}
+
+.hk-dummy-log {
+  min-height: 2.9em;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+/* Lite / reduced motion: state changes are instant. */
+html[data-lite="true"]
+  :is(.hk-node, .hk-slot, .hk-item, .hk-fire, .hk-dummy-sprite, .hk-dummy-stamp) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.hk-node, .hk-slot, .hk-item, .hk-fire, .hk-dummy-sprite, .hk-dummy-stamp) {
+    transition: none;
+  }
+}
+
+/* ═══ end phase 5: skill tree ═════════════════════════════════════════ */

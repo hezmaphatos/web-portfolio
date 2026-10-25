@@ -79,7 +79,7 @@ export function Hud({ nickname, soundDefault, sections, bossIds, onHome, path }:
         <XpBar className="hk-xp hk-xp-center max-md:hidden" />
 
         <div className="hk-hud-actions">
-          <HudMenu chapters={chapters}>
+          <HudMenu chapters={chapters} onHome={onHome} path={path}>
             <div className="hk-hud-menu-settings md:hidden">
               <SoundToggle soundDefault={soundDefault} />
               <LiteToggle />

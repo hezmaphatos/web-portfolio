@@ -51,3 +51,19 @@ Flip = First, Last, Invert, Play: record where elements are (`Flip.getState`), c
 ## Stage hints once per stage
 
 `components/game/useStageHint.ts`: one IntersectionObserver per stage (thresholds every 1 %) measures the visible part against `min(stage height, viewport)` — a 3 000 px chapter can never be 40 % visible by area. When it is ≥ 40 % visible, the splash is done and the save cookie has been read, a 600 ms timer opens the hint and `markHintSeen` writes the key into the cookie's `hints`. `completeStageHint(key)` (called by the sticker throw, the card flip, a tab or an accordion) closes it and stops it from ever auto-opening. `<StageHintHost>` owns the card: a 7 s timer paused while hovered or focused, ✕, and an always-present `role="status"` region (a live region must exist _before_ its text changes, or screen readers may stay silent).
+
+## Draggable on a proxy + a ghost clone (drag-to-equip)
+
+The inventory card itself never moves: `Draggable.create(proxy, { trigger: card })` drags an invisible proxy, and a cloned "ghost" follows it. On release we hit-test the four slots, then tween the ghost into the slot (or back home) and remove it. The real DOM never changes position, so React's tree and the layout stay untouched, and a failed drop can't leave a card stranded.
+
+## `useGSAP` with dependencies: `revertOnUpdate`
+
+When the `useGSAP` callback sets up listeners or Draggables and has `dependencies`, pass `revertOnUpdate: true`; otherwise a dependency change runs the setup again without reverting the previous one (duplicate listeners).
+
+## Native `<dialog>` as a bottom sheet
+
+`dialog.showModal()` gives focus trapping, Esc and an inert page for free; CSS positions it at the bottom on phones and `::backdrop` closes it on tap. No portal or focus-trap library needed.
+
+## Avoiding hydration layout shift with first-paint CSS
+
+Anything JS will collapse (accordions, branches) is collapsed by CSS from the first paint, keyed on the `data-lite` attribute the pre-paint head script sets. Without JS the attribute is missing, so everything stays open; with JS the server HTML already has the final heights and hydration changes nothing.
