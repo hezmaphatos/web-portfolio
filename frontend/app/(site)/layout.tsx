@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 
 import { GameChrome } from "@/components/game/GameChrome";
+import { GameConfigProvider } from "@/components/game/GameConfig";
 import { StageHintHost } from "@/components/game/StageHintHost";
 import { ToastHost } from "@/components/game/toast/ToastHost";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { StoreHydrator } from "@/components/providers/StoreHydrator";
 import { getHome } from "@/lib/api";
+
+const NO_JS_UNLOCK =
+  "[data-lock-ui]{visibility:hidden!important;pointer-events:none!important}" +
+  "[data-unlocked-ui]{visibility:visible!important;pointer-events:auto!important}" +
+  "[data-arena]{display:none!important}";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { site } = await getHome();
@@ -40,25 +46,31 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
 
   return (
     <SmoothScroll>
-      <StoreHydrator
-        skillIds={home.skills.map((skill) => skill.id)}
-        projectIds={home.projects.map((project) => project.id)}
-      />
-      <a href="#main" className="hk-skip hk-btn hk-btn-ink">
-        Skip to content
-      </a>
-      <GameChrome
-        site={home.site}
-        sections={home.sections}
-        bossIds={home.projects
-          .filter((project) => project.boss.enabled)
-          .map((project) => project.id)}
-      />
-      <main id="main">{children}</main>
-      {modal}
-      <StageHintHost />
-      <ToastHost />
-      <div className="hk-grain" aria-hidden="true" />
+      <GameConfigProvider techVisiblePercent={home.site.tech_visible_percent}>
+        {/* Without JS the boss lock is off: every tech chip and link is shown, the Arena hidden. */}
+        <noscript>
+          <style>{NO_JS_UNLOCK}</style>
+        </noscript>
+        <StoreHydrator
+          skillIds={home.skills.map((skill) => skill.id)}
+          projectIds={home.projects.map((project) => project.id)}
+        />
+        <a href="#main" className="hk-skip hk-btn hk-btn-ink">
+          Skip to content
+        </a>
+        <GameChrome
+          site={home.site}
+          sections={home.sections}
+          bossIds={home.projects
+            .filter((project) => project.boss.enabled)
+            .map((project) => project.id)}
+        />
+        <main id="main">{children}</main>
+        {modal}
+        <StageHintHost />
+        <ToastHost />
+        <div className="hk-grain" aria-hidden="true" />
+      </GameConfigProvider>
     </SmoothScroll>
   );
 }

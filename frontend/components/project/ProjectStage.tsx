@@ -11,6 +11,7 @@ import { Gallery } from "./Gallery";
 import { ProjectMeta } from "./ProjectMeta";
 import { ProjectNav } from "./ProjectNav";
 import { StoryBlocks, hasStory } from "./StoryBlocks";
+import { LockedLink } from "./LockedLink";
 import { TechChips } from "./TechChips";
 import { VideoEmbed, parseYouTube } from "./VideoEmbed";
 
@@ -47,31 +48,6 @@ function SectionTitle({ id, kicker, children }: { id: string; kicker: string; ch
   );
 }
 
-function ExternalButton({
-  href,
-  children,
-  icon: Icon,
-  className,
-}: {
-  href: string;
-  children: string;
-  icon: typeof ArrowUpRight;
-  className?: string;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn("hk-btn text-base", className)}
-    >
-      <Icon aria-hidden="true" className="size-4" />
-      {children}
-      <span className="sr-only">(opens in a new tab)</span>
-    </a>
-  );
-}
-
 /**
  * Project Stage content (spec §6.3), static. Used by the full page today and by the
  * intercepting-route modal in phase 6. The project accent drives the whole stage through
@@ -80,7 +56,7 @@ function ExternalButton({
  *
  * Phase 6 hooks: [data-stage-cover] (shared-element target of [data-card-cover]),
  * [data-stage-title] (SplitText), [data-stage-links] (Open site / Repo lock),
- * [data-preview-deck] (tabs), [data-tech] (locked chips via <TechChips openCount>).
+ * [data-preview-deck] (tabs), [data-tech] (locked chips via <TechChips>).
  */
 export function ProjectStage({ project }: Props) {
   const accent = project.accent_color;
@@ -189,14 +165,25 @@ export function ProjectStage({ project }: Props) {
 
             <div className="mt-8 flex flex-wrap items-center gap-4" data-stage-links>
               {project.live_url ? (
-                <ExternalButton href={project.live_url} icon={ArrowUpRight} className="hk-btn-hot">
+                <LockedLink
+                  href={project.live_url}
+                  icon={ArrowUpRight}
+                  className="hk-btn-hot"
+                  projectId={project.id}
+                  bossEnabled={project.boss.enabled}
+                >
                   Open site
-                </ExternalButton>
+                </LockedLink>
               ) : null}
               {project.repo_url ? (
-                <ExternalButton href={project.repo_url} icon={FolderGit2}>
+                <LockedLink
+                  href={project.repo_url}
+                  icon={FolderGit2}
+                  projectId={project.id}
+                  bossEnabled={project.boss.enabled}
+                >
                   Repo
-                </ExternalButton>
+                </LockedLink>
               ) : null}
               {!project.live_url && !project.repo_url ? (
                 <p className="hk-pixel text-ink-2 text-xs">No public site or repo for this one.</p>
@@ -287,17 +274,15 @@ export function ProjectStage({ project }: Props) {
               </SectionTitle>
               <TechChips
                 skills={project.skills}
-                openCount={null}
+                projectId={project.id}
+                bossEnabled={project.boss.enabled}
                 className="gap-3"
-                renderOpen={(skill) => (
-                  <Link
-                    href="/#skills"
-                    className="hk-chip hover:bg-lime px-3.5 text-[0.9375rem] transition-transform hover:-translate-y-0.5"
-                  >
-                    {skill.name}
-                    <span className="sr-only"> (see the Skill Tree)</span>
-                  </Link>
-                )}
+                link={{
+                  href: "/#skills",
+                  className:
+                    "hover:bg-lime px-3.5 text-[0.9375rem] transition-transform hover:-translate-y-0.5",
+                  srSuffix: "(see the Skill Tree)",
+                }}
               />
               <p className="text-ink-2 mt-5 text-sm">Pick a skill to find it in the Skill Tree.</p>
             </section>

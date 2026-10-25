@@ -1,52 +1,95 @@
-import { cn } from "@/lib/utils";
+"use client";
+
+import { Lock } from "lucide-react";
+import Link from "next/link";
+
+import { useGameConfig } from "@/components/game/GameConfig";
+import { visibleTechCount } from "@/lib/battle";
 import type { SkillRef } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+import { useBossLock } from "./useBossLock";
 
 type Props = {
   skills: SkillRef[];
-  /**
-   * How many chips (in reveal order) are open. `null` = all open.
-   * Phase 3 always passes null (static site, no gating); the boss lock (spec §6.4) uses
-   * visibleTechCount() from lib/battle once the save store exists (phase 6).
-   */
-  openCount?: number | null;
+  projectId: number;
+  /** Projects without a boss show every chip. */
+  bossEnabled: boolean;
   /** Extra classes for each chip (e.g. on dark sections). */
   chipClassName?: string;
   className?: string;
-  /** Render each open skill as something else (e.g. a link to the Skill Tree). */
-  renderOpen?: (skill: SkillRef) => React.ReactNode;
+  /**
+   * Open chips become links (e.g. to the Skill Tree). Plain data, not a render function:
+   * Server Components pass it, and functions cannot cross into a Client Component.
+   */
+  link?: { href: string; className?: string; srSuffix?: string };
 };
 
 /**
- * The single component that decides which tech chips are shown and which are locked, used by
- * the showcase cards, the grid and the Project Stage (spec §11). A locked chip has the exact
- * box of an open one ("???" + lock), so unlocking never shifts the layout.
+ * The single component that decides which tech chips are open and which are locked, used by the
+ * showcase cards, the grid and the Project Stage (spec §11). The first
+ * visibleTechCount(n, tech_visible_percent) chips (reveal order) are always open; the rest show
+ * "???" until the boss is defeated.
+ *
+ * A lockable chip stacks both faces in one grid cell (open name + "???"), so its box is the same
+ * size locked and unlocked — unlocking after hydration never shifts the layout. Without JS the
+ * <noscript> rule in the site layout shows every name (the lock is a game, not a secret).
  */
 export function TechChips({
   skills,
-  openCount = null,
+  projectId,
+  bossEnabled,
   chipClassName,
   className,
-  renderOpen,
+  link,
 }: Props) {
+  const { techVisiblePercent } = useGameConfig();
+  const { locked } = useBossLock(projectId, bossEnabled);
   if (skills.length === 0) return null;
-  const open = openCount === null ? skills.length : Math.max(0, Math.min(openCount, skills.length));
+
+  const alwaysOpen = bossEnabled
+    ? visibleTechCount(skills.length, techVisiblePercent)
+    : skills.length;
+  const lockedCount = skills.length - alwaysOpen;
+
+  const open = (skill: SkillRef) =>
+    link ? (
+      <Link href={link.href} className={cn("hk-chip", chipClassName, link.className)}>
+        {skill.name}
+        {link.srSuffix ? <span className="sr-only"> {link.srSuffix}</span> : null}
+      </Link>
+    ) : (
+      <span className={cn("hk-chip", chipClassName)}>{skill.name}</span>
+    );
 
   return (
-    <ul className={cn("flex flex-wrap gap-2", className)} aria-label="Tech stack">
+    <ul
+      className={cn("flex flex-wrap gap-2", className)}
+      aria-label="Tech stack"
+      data-tech-chips
+      data-locked={locked && lockedCount > 0 ? "true" : "false"}
+    >
       {skills.map((skill, index) =>
-        index < open ? (
+        index < alwaysOpen ? (
           <li key={skill.id} className="contents">
-            {renderOpen ? (
-              renderOpen(skill)
-            ) : (
-              <span className={cn("hk-chip", chipClassName)}>{skill.name}</span>
-            )}
+            {open(skill)}
           </li>
         ) : (
-          <li key={skill.id} className="contents">
-            <span className={cn("hk-chip hk-mono opacity-80", chipClassName)}>
-              <span aria-hidden="true">🔒 ???</span>
-              <span className="sr-only">Locked: defeat the boss to reveal</span>
+          <li key={skill.id} className="grid" data-lockable-chip>
+            <span data-unlocked-ui aria-hidden={locked || undefined} className="[grid-area:1/1]">
+              {open(skill)}
+            </span>
+            <span
+              data-lock-ui
+              aria-hidden={!locked || undefined}
+              className={cn(
+                "hk-chip hk-mono justify-center opacity-85 [grid-area:1/1]",
+                chipClassName,
+              )}
+            >
+              <Lock aria-hidden="true" className="size-3.5" />
+              <span aria-hidden="true">???</span>
+              <span className="sr-only">Locked: defeat the boss to reveal this skill</span>
             </span>
           </li>
         ),

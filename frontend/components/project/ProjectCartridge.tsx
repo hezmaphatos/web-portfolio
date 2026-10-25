@@ -94,7 +94,12 @@ export function ProjectCartridge({ project, position, total, className }: Props)
 
         {project.tagline ? <p className="text-base md:text-lg">{project.tagline}</p> : null}
 
-        <TechChips skills={project.skills} openCount={null} className="mt-auto pt-3" />
+        <TechChips
+          skills={project.skills}
+          projectId={project.id}
+          bossEnabled={project.boss.enabled}
+          className="mt-auto pt-3"
+        />
 
         <p
           aria-hidden="true"

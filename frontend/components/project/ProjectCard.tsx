@@ -110,7 +110,12 @@ export function ProjectCard({
 
         <BossBadge boss={project.boss} size="sm" className="self-start sm:hidden" />
 
-        <TechChips skills={project.skills} openCount={null} className="mt-auto pt-1 sm:pt-2" />
+        <TechChips
+          skills={project.skills}
+          projectId={project.id}
+          bossEnabled={project.boss.enabled}
+          className="mt-auto pt-1 sm:pt-2"
+        />
 
         <p
           aria-hidden="true"

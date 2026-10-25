@@ -2785,3 +2785,12 @@ html[data-lite="true"]
 }
 
 /* ═══ end phase 5: skill tree ═════════════════════════════════════════ */
+
+/* ── phase 6: boss lock (components/project/{TechChips,LockedLink}) ──────────────────────
+   Both faces of a lockable chip/link share one grid cell; the hidden face keeps its size. */
+[data-unlocked-ui][aria-hidden="true"],
+[data-lock-ui][aria-hidden="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* end phase 6: boss lock */
