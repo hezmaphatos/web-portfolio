@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
+import { CardHover } from "@/components/chapters/projects/CardHover";
+import { DefeatedStamp } from "@/components/chapters/projects/DefeatedStamp";
 import { Media } from "@/components/ui/Media";
 import { cn, formatYears, label } from "@/lib/utils";
 import type { ProjectSummary } from "@/lib/types";
 
 import { BossBadge } from "./BossBadge";
+import { PeekButton } from "./PeekButton";
 import { TechChips } from "./TechChips";
 
 type Props = {
   project: ProjectSummary;
   /** Heading level of the card title, so the outline stays ordered wherever the grid sits. */
-  as?: "h3" | "h4";
+  as?: "h2" | "h3" | "h4";
   /** Background the card sits on: on ink, the hard shadow takes the project accent. */
   tone?: "paper" | "ink";
   /** Position in the grid; picks the (small) tilt so neighbours never match. */
@@ -26,11 +29,16 @@ const TILTS = [
   "md:rotate-[0.8deg]",
 ];
 
+const SIZES = "(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 7rem";
+
 /**
  * Grid card (Scene B and /projects, spec §6.2): cover, category + years, title, tagline, tech,
  * boss sticker. The whole card is clickable through the title link (stretched with ::after),
- * so the accessible name stays the title. Phase 6 adds the Flip filter ([data-grid-item],
- * [data-category], [data-skills]), the hover cover swap and Peek.
+ * so the accessible name stays the title. Client islands on top of the server HTML:
+ * <CardHover> (desktop: cover → hover video / second image + a subtle tilt), <PeekButton>
+ * (quick preview, JS only), <DefeatedStamp>, and the boss HP that follows the save cookie.
+ * Hooks for the grid filter: [data-grid-item], [data-category], [data-skills]; for the Skill
+ * Tree highlight: [data-project-id]; for the Stage hand-off: [data-card-cover].
  */
 export function ProjectCard({
   project,
@@ -57,6 +65,7 @@ export function ProjectCard({
       data-project-id={project.id}
       data-category={project.category}
       data-skills={project.skills.map((s) => s.slug).join(" ")}
+      data-cursor="VIEW"
     >
       <div className="border-ink relative border-r-2 sm:border-r-0 sm:border-b-2" data-card-cover>
         <Media
@@ -66,13 +75,16 @@ export function ProjectCard({
           accent={project.accent_color}
           ratio={16 / 10}
           thumb
-          sizes="(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 7rem"
+          sizes={SIZES}
           className="max-sm:aspect-auto! max-sm:h-full"
         />
+        <CardHover image={project.hover_image} video={project.hover_video} sizes={SIZES} />
+        <DefeatedStamp projectId={project.id} bossEnabled={project.boss.enabled} size="sm" />
         <BossBadge
           boss={project.boss}
           size="sm"
-          className="absolute bottom-3 left-3 -rotate-2 max-sm:hidden"
+          projectId={project.id}
+          className="absolute bottom-3 left-3 z-[2] -rotate-2 max-sm:hidden"
         />
       </div>
 
@@ -102,13 +114,21 @@ export function ProjectCard({
           </Link>
         </Heading>
 
+        {/* After the title link in the tab order; positioned on the cover by CSS. */}
+        <PeekButton projectId={project.id} title={project.title} />
+
         {project.tagline ? (
           <p className="line-clamp-2 text-sm sm:line-clamp-3 sm:text-[0.9375rem]">
             {project.tagline}
           </p>
         ) : null}
 
-        <BossBadge boss={project.boss} size="sm" className="self-start sm:hidden" />
+        <BossBadge
+          boss={project.boss}
+          size="sm"
+          projectId={project.id}
+          className="self-start sm:hidden"
+        />
 
         <TechChips
           skills={project.skills}

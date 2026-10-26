@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowUpRight, FolderGit2 } from "lucide-react";
 
 import { contrastOn } from "@/components/ui/GenerativePlaceholder";
 import { Media } from "@/components/ui/Media";
@@ -7,29 +6,29 @@ import { cn, label } from "@/lib/utils";
 import type { ProjectDetail, Skill } from "@/lib/types";
 
 import { BossBadge } from "./BossBadge";
-import { Gallery } from "./Gallery";
+import { BattleArena } from "./arena/BattleArena";
+import { PreviewDeck } from "./deck/PreviewDeck";
+import { deckTabs, hostOf } from "./deck/media";
 import { ProjectMeta } from "./ProjectMeta";
 import { ProjectNav } from "./ProjectNav";
+import { StageIntro } from "./stage/StageIntro";
+import { StageLinks } from "./stage/StageLinks";
 import { StoryBlocks, hasStory } from "./StoryBlocks";
-import { BattleArena } from "./arena/BattleArena";
-import { LockedLink } from "./LockedLink";
 import { TechChips } from "./TechChips";
-import { VideoEmbed, parseYouTube } from "./VideoEmbed";
 
 type Props = {
   project: ProjectDetail;
   /** Visible game skills (Home payload): the Arena loadout is built from them. */
   skills: Skill[];
+  /**
+   * "page": the full page (/projects/[slug] after a direct visit or refresh).
+   * "modal": inside the intercepting-route modal over Home or /projects (no breadcrumb — the
+   * modal has ✕ / Esc; next / previous swap the project in place).
+   */
+  variant?: "page" | "modal";
+  /** Count this opening (off for admin previews and drafts). */
+  countView?: boolean;
 };
-
-function hostOf(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).host;
-  } catch {
-    return null;
-  }
-}
 
 /** Short titles get poster-size type; long ones step down so they stay within ~3 lines. */
 function titleSize(title: string): string {
@@ -54,57 +53,85 @@ function SectionTitle({ id, kicker, children }: { id: string; kicker: string; ch
 }
 
 /**
- * Project Stage content (spec §6.3), static. Used by the full page today and by the
- * intercepting-route modal in phase 6. The project accent drives the whole stage through
- * `--accent`; small text never sits directly on the accent (mid-tone accents can't carry AA
- * body text), only display type does.
+ * Project Stage (spec §6.3), shared by the full page and the modal. Server-rendered and fully
+ * readable without JS; client islands add the motion and the game: <StageIntro> (title reveal,
+ * shared-element cover, view count), <StageLinks> / <TechChips> (boss lock),
+ * <BattleArena>, <PreviewDeck>. The project accent drives the whole stage through `--accent`;
+ * small text never sits directly on the accent (mid-tone accents can't carry AA body text),
+ * only display type does.
  *
- * Phase 6 hooks: [data-stage-cover] (shared-element target of [data-card-cover]),
- * [data-stage-title] (SplitText), [data-stage-links] (Open site / Repo lock),
- * [data-preview-deck] (tabs), [data-tech] (locked chips via <TechChips>).
+ * Ids carry the variant and slug: a full page and a modal (or Activity-kept copies of other
+ * stages) can be in the document at the same time.
+ *
+ * Hooks for the client parts: [data-stage] (root), [data-stage-cover] (shared-element target
+ * of the card's [data-card-cover]), [data-stage-title] (SplitText), [data-stage-links],
+ * [data-preview-deck], [data-tech], and [data-stage-scroller] on the modal's scroll container.
  */
-export function ProjectStage({ project, skills }: Props) {
+export function ProjectStage({ project, skills, variant = "page", countView = true }: Props) {
   const accent = project.accent_color;
   const onAccent = contrastOn(accent);
   const host = hostOf(project.live_url) ?? `${project.slug}.app`;
-  const youtube = project.video_url ? parseYouTube(project.video_url) : null;
-  const hasVideo = Boolean(youtube) || Boolean(project.video?.mime.startsWith("video/"));
-  const hasDeck = project.gallery.length > 0 || hasVideo;
+  const tabs = deckTabs(project);
+  const hasDeck = tabs.length > 0;
   const story = hasStory(project);
+
+  const prefix = `stage-${variant}-${project.slug}`;
+  const ids = {
+    title: `${prefix}-title`,
+    overview: `${prefix}-overview`,
+    deck: `${prefix}-deck`,
+    story: `${prefix}-story`,
+    tech: `${prefix}-tech`,
+    more: `${prefix}-more`,
+  };
 
   return (
     <article
-      aria-labelledby="stage-title"
+      aria-labelledby={ids.title}
       style={{ "--accent": accent } as React.CSSProperties}
       data-stage
+      data-stage-variant={variant}
       data-project-id={project.id}
     >
+      <StageIntro
+        projectId={project.id}
+        slug={project.slug}
+        accent={accent}
+        titleId={ids.title}
+        countView={countView}
+      />
+
       {/* ── Hero: the accent poster ─────────────────────────────────────── */}
       <header
-        className="hk-chapter pt-6 pb-14 md:pt-8 md:pb-16"
+        className={cn(
+          "hk-chapter pb-14 md:pb-16",
+          variant === "modal" ? "pt-16 md:pt-14" : "pt-6 md:pt-8",
+        )}
         style={{ "--chapter-bg": accent, "--chapter-fg": onAccent } as React.CSSProperties}
         data-stage-hero
       >
         <div className="hk-wrap">
-          <nav aria-label="Breadcrumb" className="mb-10 md:mb-14">
-            <ol className="hk-pixel border-ink bg-paper text-ink inline-flex flex-wrap items-center gap-x-2 border-2 px-3 py-1.5 text-[0.6875rem] md:text-xs">
-              <li>
-                <Link href="/" className="hover:underline">
-                  Home
-                </Link>
-              </li>
-              <li aria-hidden="true">/</li>
-              <li>
-                <Link href="/projects" className="hover:underline">
-                  Projects
-                </Link>
-              </li>
-              <li aria-hidden="true">/</li>
-              <li aria-current="page" className="max-w-[14rem] truncate opacity-70">
-                {project.title}
-              </li>
-            </ol>
-          </nav>
+          {variant === "page" ? (
+            <nav aria-label="Breadcrumb" className="mb-10 md:mb-14">
+              <ol className="hk-pixel border-ink bg-paper text-ink inline-flex flex-wrap items-center gap-x-2 border-2 px-3 py-1.5 text-[0.6875rem] md:text-xs">
+                <li>
+                  <Link href="/" className="hover:underline">
+                    Home
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li>
+                  <Link href="/projects" className="hover:underline">
+                    Projects
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li aria-current="page" className="max-w-[14rem] truncate opacity-70">
+                  {project.title}
+                </li>
+              </ol>
+            </nav>
+          ) : null}
 
           <div className="grid gap-10 md:grid-cols-12 md:items-end md:gap-8">
             <div className="md:col-span-7">
@@ -112,7 +139,7 @@ export function ProjectStage({ project, skills }: Props) {
                 Level · {label(project.category)}
               </p>
               <h1
-                id="stage-title"
+                id={ids.title}
                 data-stage-title
                 className={cn(
                   "hk-display hk-condensed text-balance [overflow-wrap:anywhere] uppercase",
@@ -155,11 +182,8 @@ export function ProjectStage({ project, skills }: Props) {
       </header>
 
       {/* ── Overview: summary, links, spec sheet ──────────────────────────── */}
-      <section
-        aria-labelledby="stage-overview"
-        className="hk-chapter pt-12 pb-14 md:pt-14 md:pb-20"
-      >
-        <h2 id="stage-overview" className="sr-only">
+      <section aria-labelledby={ids.overview} className="hk-chapter pt-12 pb-14 md:pt-14 md:pb-20">
+        <h2 id={ids.overview} className="sr-only">
           Overview
         </h2>
         <div className="hk-wrap grid gap-12 md:grid-cols-12 md:gap-8">
@@ -168,31 +192,13 @@ export function ProjectStage({ project, skills }: Props) {
               <p className="max-w-[40ch] text-xl leading-snug md:text-2xl">{project.summary}</p>
             ) : null}
 
-            <div className="mt-8 flex flex-wrap items-center gap-4" data-stage-links>
-              {project.live_url ? (
-                <LockedLink
-                  href={project.live_url}
-                  icon={ArrowUpRight}
-                  className="hk-btn-hot"
-                  projectId={project.id}
-                  bossEnabled={project.boss.enabled}
-                >
-                  Open site
-                </LockedLink>
-              ) : null}
-              {project.repo_url ? (
-                <LockedLink
-                  href={project.repo_url}
-                  icon={FolderGit2}
-                  projectId={project.id}
-                  bossEnabled={project.boss.enabled}
-                >
-                  Repo
-                </LockedLink>
-              ) : null}
-              {!project.live_url && !project.repo_url ? (
-                <p className="hk-pixel text-ink-2 text-xs">No public site or repo for this one.</p>
-              ) : null}
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-4" data-stage-links>
+              <StageLinks
+                projectId={project.id}
+                bossEnabled={project.boss.enabled}
+                liveUrl={project.live_url}
+                repoUrl={project.repo_url}
+              />
             </div>
           </div>
 
@@ -219,44 +225,32 @@ export function ProjectStage({ project, skills }: Props) {
       {/* Battle Arena (boss projects only, spec §6.4). */}
       {project.boss.enabled ? <BattleArena project={project} skills={skills} /> : null}
 
-      {/* ── Preview Deck (static: screenshots + video) ─────────────────────── */}
+      {/* ── Preview Deck: Screenshots / Video / Live ───────────────────────── */}
       {hasDeck ? (
         <section
-          aria-labelledby="stage-deck"
+          aria-labelledby={ids.deck}
           className="hk-chapter py-16 [--chapter-bg:var(--paper-2)] md:py-24"
           data-preview-deck
         >
           <div className="hk-wrap">
-            <SectionTitle id="stage-deck" kicker="Preview deck">
+            <SectionTitle id={ids.deck} kicker="Preview deck">
               Preview
             </SectionTitle>
-            {project.gallery.length > 0 ? (
-              <div data-deck-tab="screenshots">
-                <h3 className="hk-pixel mb-6 text-sm">Screenshots</h3>
-                <Gallery
-                  items={project.gallery}
-                  title={project.title}
-                  seed={project.slug}
-                  accent={accent}
-                  address={host}
-                />
-              </div>
-            ) : null}
-            {hasVideo ? (
-              <div
-                data-deck-tab="video"
-                className={cn(project.gallery.length > 0 && "mt-16 md:mt-20")}
-              >
-                <h3 className="hk-pixel mb-6 text-sm">Video</h3>
-                <VideoEmbed
-                  url={project.video_url}
-                  video={project.video}
-                  title={project.title}
-                  poster={project.cover}
-                  className="max-w-4xl"
-                />
-              </div>
-            ) : null}
+            <PreviewDeck
+              projectId={project.id}
+              slug={project.slug}
+              title={project.title}
+              accent={accent}
+              bossEnabled={project.boss.enabled}
+              gallery={project.gallery}
+              videoUrl={project.video_url}
+              video={project.video}
+              cover={project.cover}
+              liveUrl={project.live_url}
+              allowIframe={project.allow_iframe_preview}
+              address={host}
+              idPrefix={prefix}
+            />
           </div>
         </section>
       ) : null}
@@ -265,8 +259,8 @@ export function ProjectStage({ project, skills }: Props) {
       <div className={cn("hk-chapter pb-20 md:pb-28", hasDeck ? "pt-16 md:pt-24" : "pt-6 md:pt-8")}>
         <div className="hk-wrap flex flex-col gap-20 md:gap-28">
           {story ? (
-            <section aria-labelledby="stage-story">
-              <SectionTitle id="stage-story" kicker="The quest">
+            <section aria-labelledby={ids.story}>
+              <SectionTitle id={ids.story} kicker="The quest">
                 Story
               </SectionTitle>
               <StoryBlocks project={project} />
@@ -274,8 +268,8 @@ export function ProjectStage({ project, skills }: Props) {
           ) : null}
 
           {project.skills.length > 0 ? (
-            <section aria-labelledby="stage-tech" data-tech>
-              <SectionTitle id="stage-tech" kicker="Loadout used">
+            <section aria-labelledby={ids.tech} data-tech>
+              <SectionTitle id={ids.tech} kicker="Loadout used">
                 Tech used
               </SectionTitle>
               <TechChips
@@ -301,7 +295,7 @@ export function ProjectStage({ project, skills }: Props) {
         <div className="hk-wrap">
           <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
             <h2
-              id="stage-more"
+              id={ids.more}
               className="hk-display hk-condensed text-[clamp(2.25rem,5vw,3.5rem)] uppercase"
             >
               More levels
@@ -310,7 +304,12 @@ export function ProjectStage({ project, skills }: Props) {
               All projects
             </Link>
           </div>
-          <ProjectNav prev={project.prev} next={project.next} titleId="stage-more" />
+          <ProjectNav
+            prev={project.prev}
+            next={project.next}
+            titleId={ids.more}
+            replace={variant === "modal"}
+          />
         </div>
       </footer>
     </article>

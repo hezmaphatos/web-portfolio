@@ -1,3 +1,4 @@
+import { BossHp } from "@/components/chapters/projects/BossHp";
 import { cn } from "@/lib/utils";
 import type { Boss, BossTier } from "@/lib/types";
 
@@ -50,6 +51,11 @@ type Props = {
   /** Also print the boss name ("The Paper Colossus"). */
   withName?: boolean;
   size?: "sm" | "md";
+  /**
+   * Pass the project id to follow the save cookie: once the boss is defeated the HP is struck
+   * through (same width, no layout shift). Without it the sticker is fully static.
+   */
+  projectId?: number;
   className?: string;
 };
 
@@ -57,7 +63,7 @@ type Props = {
  * Boss sticker for cards and the Project Stage: tier sprite, tier, HP. Renders nothing for
  * projects without a boss (spec §6.4: those are fully open and have no Arena).
  */
-export function BossBadge({ boss, withName = false, size = "md", className }: Props) {
+export function BossBadge({ boss, withName = false, size = "md", projectId, className }: Props) {
   if (!boss.enabled) return null;
 
   return (
@@ -83,7 +89,11 @@ export function BossBadge({ boss, withName = false, size = "md", className }: Pr
         {TIER_TEXT[boss.tier]}
         <span aria-hidden="true"> · </span>
         <span className="sr-only">, </span>
-        <span className="hk-mono font-bold tracking-normal whitespace-nowrap">HP {boss.hp}</span>
+        {projectId !== undefined ? (
+          <BossHp hp={boss.hp} projectId={projectId} />
+        ) : (
+          <span className="hk-mono font-bold tracking-normal whitespace-nowrap">HP {boss.hp}</span>
+        )}
       </span>
     </p>
   );

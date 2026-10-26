@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { AvatarPath } from "@/components/game/AvatarPath";
 import { ChapterTracker } from "@/components/game/ChapterTracker";
+import { CustomCursor } from "@/components/game/cursor/CustomCursor";
 import { Hud } from "@/components/game/hud/Hud";
 import { useChapterSections } from "@/components/game/useChapterSections";
 import { useHudStore } from "@/lib/store";
@@ -45,6 +46,7 @@ export function GameChrome({ site, sections, bossIds }: Props) {
         hasBoot={sections.some((section) => section.key === "boot")}
       />
       <AvatarPath sections={chapters} />
+      <CustomCursor />
     </>
   );
 }

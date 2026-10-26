@@ -1,7 +1,7 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cookies, draftMode } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { Suspense, cache } from "react";
+import { cache } from "react";
 
 import { ProjectStage } from "@/components/project/ProjectStage";
 import { ADMIN_COOKIE } from "@/lib/admin/session";
@@ -9,17 +9,27 @@ import { getHome, getProject, getProjectPreview, getProjects } from "@/lib/api";
 import type { ProjectDetail } from "@/lib/types";
 
 /**
- * Project Stage as a full page (spec §6.3; the modal over Home comes in phase 6).
+ * Project Stage as a full page (spec §6.3): direct visits, refreshes and shared links. A click on
+ * a project card instead opens the same stage as a modal over the current page — the
+ * intercepting route app/(site)/@modal/(.)projects/[slug].
  *
- * Static by default: every published slug is prerendered (generateStaticParams), the data comes
- * from the cached `getProject` (tags `projects` + `project:{slug}`, expired by the backend after
- * admin edits), and `params` is awaited inside <Suspense> so a slug published after the build
- * gets the App Shell at once and is cached after its first visit (ISR with Cache Components).
+ * Static by default: every published slug is prerendered (generateStaticParams) and the data
+ * comes from the cached `getProject` (tags `projects` + `project:{slug}`, expired by the backend
+ * after admin edits).
+ *
+ * A blocking route on purpose (`instant = false`, `params` awaited outside <Suspense>): with the
+ * ISR App Shell pattern the stage was streamed as a hidden segment that only JavaScript moves
+ * into place, so visitors without JS (spec §6.4 noscript) and crawlers saw an empty page, and an
+ * unknown slug answered 200. Now the prerendered HTML holds the whole stage inline, and a slug
+ * published after the build renders on its first request (then cached), with a real 404 for
+ * unknown slugs.
  *
  * Draft preview: /api/admin/preview turns Draft Mode on. Only then does the page read the
  * httpOnly admin cookie and fetch the project uncached with the admin token (drafts included).
  * During prerendering draftMode() is always off, so cookies() is never reached there.
  */
+
+export const instant = false;
 
 /** Cache Components needs at least one param at build time; an empty catalogue 404s on it. */
 const PLACEHOLDER_SLUG = "__no-projects__";
@@ -74,18 +84,27 @@ export async function generateMetadata(
       title,
       description,
       url,
-      images: image
-        ? [
-            {
-              url: image.url,
-              width: image.width ?? undefined,
-              height: image.height ?? undefined,
-              alt: image.alt ?? project.title,
-            },
-          ]
-        : parentOg?.images,
+      // No og_image / cover: leave `images` out, so the generated ./opengraph-image.tsx fills
+      // it (file-based metadata only applies when this object has no `images` key).
+      ...(image
+        ? {
+            images: [
+              {
+                url: image.url,
+                width: image.width ?? undefined,
+                height: image.height ?? undefined,
+                alt: image.alt ?? project.title,
+              },
+            ],
+          }
+        : {}),
     },
-    twitter: { card: image ? "summary_large_image" : "summary", title, description },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(image ? { images: [image.url] } : {}),
+    },
   };
 }
 
@@ -122,7 +141,7 @@ function PreviewBanner({ project }: { project: ProjectDetail }) {
   );
 }
 
-async function StageContent({ params }: Params) {
+export default async function ProjectPage({ params }: Params) {
   const { slug } = await params;
   const [{ project, preview }, home] = await Promise.all([loadStage(slug), getHome()]);
   if (!project) notFound();
@@ -130,33 +149,12 @@ async function StageContent({ params }: Params) {
   return (
     <>
       {preview ? <PreviewBanner project={project} /> : null}
-      <ProjectStage project={project} skills={home.skills} />
+      <ProjectStage
+        project={project}
+        skills={home.skills}
+        variant="page"
+        countView={!preview && project.status === "published"}
+      />
     </>
-  );
-}
-
-/** App Shell for slugs that were not prerendered: shown until the stage streams in. */
-function StageFallback() {
-  return (
-    <div className="hk-chapter min-h-[70svh] pt-8 [--chapter-bg:var(--paper-2)]" aria-busy="true">
-      <div className="hk-wrap">
-        <p className="hk-pixel text-sm" role="status">
-          <span aria-hidden="true">▸ </span>Loading level…
-        </p>
-        <div aria-hidden="true" className="mt-12 flex flex-col gap-4">
-          <span className="bg-ink/10 block h-16 w-3/4 md:h-24" />
-          <span className="bg-ink/10 block h-16 w-1/2 md:h-24" />
-          <span className="bg-ink/10 mt-6 block h-6 w-2/3" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function ProjectPage({ params }: Params) {
-  return (
-    <Suspense fallback={<StageFallback />}>
-      <StageContent params={params} />
-    </Suspense>
   );
 }

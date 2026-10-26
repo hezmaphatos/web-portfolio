@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { ProjectCard } from "@/components/project/ProjectCard";
+import { ProjectGrid } from "@/components/chapters/projects/ProjectGrid";
 import { getProjects } from "@/lib/api";
-import { label } from "@/lib/utils";
-import { PROJECT_CATEGORIES, type ProjectSummary } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "All projects",
@@ -16,21 +14,18 @@ export const metadata: Metadata = {
 
 /**
  * Level index (spec §4 sitemap, §6.2). Static: one cached `getProjects()` (tag `projects`).
- * The filter works without JavaScript and without reading searchParams (which would make the
- * page dynamic): every project is rendered once, grouped by category, and the filter chips are
- * jump links to those groups. Phase 6 swaps this for the Flip-animated filter over one grid.
+ * The grid is the very same component as Scene B on Home (<ProjectGrid>): filter chips + search
+ * with a Flip re-flow, hover swap, Peek. Filtering happens on the client over the full list, so
+ * the page never reads searchParams (which would make it dynamic); without JavaScript the filter
+ * bar is hidden and every project is listed.
  */
 export default async function ProjectsIndexPage() {
   const projects = await getProjects();
-  const groups = PROJECT_CATEGORIES.map((category) => ({
-    category,
-    items: projects.filter((project) => project.category === category),
-  })).filter((group) => group.items.length > 0);
   const bosses = projects.filter((project) => project.boss.enabled).length;
 
   return (
     <>
-      <header className="hk-chapter pt-8 pb-12 md:pt-10 md:pb-16">
+      <header className="hk-chapter pt-20 pb-10 md:pt-24 md:pb-14">
         <div className="hk-wrap">
           <Link
             href="/#projects"
@@ -40,7 +35,7 @@ export default async function ProjectsIndexPage() {
             Back to Home
           </Link>
 
-          <div className="mt-12 flex flex-wrap items-end justify-between gap-6 md:mt-16">
+          <div className="mt-10 flex flex-wrap items-end justify-between gap-6 md:mt-12">
             <div>
               <p className="hk-pixel mb-3 text-xs opacity-80 md:text-sm">
                 <span aria-hidden="true">▸ </span>LV 05 · Level select
@@ -59,67 +54,20 @@ export default async function ProjectsIndexPage() {
               </p>
             ) : null}
           </div>
-
-          {groups.length > 1 ? (
-            <nav aria-label="Filter by category" className="mt-10">
-              <ul className="flex flex-wrap gap-3">
-                {groups.map(({ category, items }) => (
-                  <li key={category}>
-                    <a
-                      href={`#${category}`}
-                      className="hk-chip hover:bg-lime h-10 gap-2 px-4 text-sm transition-transform hover:-translate-y-0.5"
-                    >
-                      {label(category)}
-                      <span className="hk-mono bg-ink text-paper rounded-full px-1.5 py-0.5 text-[0.6875rem]">
-                        {items.length}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ) : null}
         </div>
       </header>
 
       <div className="hk-chapter pt-0">
-        <div className="hk-wrap flex flex-col gap-20 md:gap-28">
-          {groups.length === 0 ? (
-            <p className="hk-panel-flat hk-pixel inline-block self-start px-4 py-3 text-sm">
+        <div className="hk-wrap">
+          {projects.length === 0 ? (
+            <p className="hk-panel-flat hk-pixel inline-block px-4 py-3 text-sm">
               No levels yet. New stages are being built.
             </p>
-          ) : null}
-
-          {groups.map(({ category, items }) => (
-            <CategoryGroup key={category} category={category} items={items} />
-          ))}
+          ) : (
+            <ProjectGrid projects={projects} as="h2" tone="paper" />
+          )}
         </div>
       </div>
     </>
-  );
-}
-
-function CategoryGroup({ category, items }: { category: string; items: ProjectSummary[] }) {
-  return (
-    <section id={category} aria-labelledby={`${category}-title`} className="scroll-mt-8">
-      <div className="border-ink mb-10 flex items-baseline justify-between gap-4 border-b-2 pb-4">
-        <h2
-          id={`${category}-title`}
-          className="hk-display hk-condensed text-[clamp(2.25rem,6vw,4rem)] uppercase"
-        >
-          {label(category)}
-        </h2>
-        <p className="hk-pixel text-xs">
-          {items.length} {items.length === 1 ? "project" : "projects"}
-        </p>
-      </div>
-      <ul className="grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((project, i) => (
-          <li key={project.id}>
-            <ProjectCard project={project} as="h3" index={i} />
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

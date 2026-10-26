@@ -2794,3 +2794,2145 @@ html[data-lite="true"]
   pointer-events: none;
 }
 /* end phase 6: boss lock */
+
+/* ── phase 6A: arena (components/project/arena/*, spec §6.4) ──────────────────────────────
+   The Battle Arena: one fixed box in every state. Every row has a set height (stage, HP, slots,
+   controls, loot, log), and the editor / coach marks / banner are overlays, so FIGHT!, a win, a
+   saved defeat or "Edit loadout" never move the page. At most 360 px tall from 1024 px up. */
+.hk-arena-sec {
+  padding-block: 2.25rem 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .hk-arena-sec {
+    padding-block: 3rem 4.5rem;
+  }
+}
+
+.hk-arena {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: var(--border);
+  border-radius: 2px 14px 2px 2px;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 6px 6px 0 var(--accent);
+}
+
+@media (min-width: 640px) {
+  .hk-arena {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hk-arena {
+    height: 22.5rem;
+  }
+}
+
+/* The header depends on the project only (never on the fight state), so on phones a long boss
+   name may take two lines; from 1024 px up it is one line in a fixed 2.75rem row. */
+.hk-arena-head {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+}
+
+.hk-arena-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1.6rem;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (min-width: 768px) {
+  .hk-arena-name {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-head {
+    height: 2.75rem;
+  }
+
+  .hk-arena-name {
+    display: block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Narrow phones: the tier icon + HP say enough; the tier word stays for screen readers. */
+@media (max-width: 399.98px) {
+  .hk-arena-tier {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.hk-arena-body {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .hk-arena-body {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-body {
+    flex: 1;
+  }
+}
+
+.hk-arena-left,
+.hk-arena-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The pit: paper floor with a stripe of the project accent, the boss standing on the line. */
+.hk-arena-stage {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  justify-content: center;
+  height: 11.5rem;
+  overflow: hidden;
+  border: 2px solid var(--paper);
+  background:
+    linear-gradient(var(--ink), var(--ink)) left 0 bottom 0.9rem / 100% 2px no-repeat,
+    linear-gradient(
+        color-mix(in srgb, var(--accent) 45%, var(--paper-2)),
+        color-mix(in srgb, var(--accent) 45%, var(--paper-2))
+      )
+      bottom / 100% 0.9rem no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 22px, rgb(17 17 17 / 0.07) 22px 24px),
+    var(--paper-2);
+  color: var(--ink);
+}
+
+@media (min-width: 768px) {
+  .hk-arena-stage {
+    flex: 1;
+    height: auto;
+  }
+}
+
+.hk-arena-sprite {
+  margin-bottom: calc(0.9rem + 2px);
+  transform-origin: 50% 100%;
+}
+
+/* A whole number of screen pixels per sprite pixel keeps the generative boss crisp. */
+.hk-boss-art {
+  --px: 7px;
+  display: block;
+  width: calc(var(--cols, 20) * var(--px));
+  height: calc(var(--rows, 20) * var(--px));
+}
+
+.hk-arena[data-tier="minion"] .hk-boss-art {
+  --px: 9px;
+}
+
+@media (min-width: 768px) {
+  .hk-boss-art {
+    --px: 8px;
+  }
+
+  .hk-arena[data-tier="minion"] .hk-boss-art {
+    --px: 10px;
+  }
+}
+
+div.hk-boss-art {
+  width: 9rem;
+  height: 9rem;
+}
+
+/* Uploaded sprites are one picture: the final tier's phases tilt and shrink it instead. */
+.hk-arena[data-phase="2"] div.hk-boss-art {
+  rotate: -4deg;
+}
+
+.hk-arena[data-phase="3"] div.hk-boss-art {
+  rotate: 5deg;
+  scale: 0.94;
+}
+
+/* Beaten: the boss is gone (dissolved), the banner holds the stage. */
+.hk-arena[data-cleared] .hk-arena-sprite {
+  visibility: hidden;
+}
+
+.hk-arena-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hk-arena-bubble {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  max-width: min(13rem, 62%);
+  padding: 0.35rem 0.55rem;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: var(--shadow-sm);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hk-arena-bubble[data-show] {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* The tail points down-left, at the boss. */
+.hk-arena-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 1.25rem;
+  width: 10px;
+  height: 10px;
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  background: var(--paper);
+  rotate: 45deg;
+}
+
+.hk-arena-banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1rem;
+  text-align: center;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hk-arena[data-view="ko"] .hk-arena-banner,
+.hk-arena[data-cleared] .hk-arena-banner {
+  visibility: visible;
+  opacity: 1;
+}
+
+.hk-arena-banner-title {
+  display: inline-block;
+  padding: 0.4rem 0.75rem 0.25rem;
+  border: var(--border);
+  background: var(--hot);
+  color: var(--ink);
+  font-size: clamp(1.9rem, 6vw, 2.75rem);
+  line-height: 0.9;
+  box-shadow: var(--shadow);
+  rotate: -4deg;
+}
+
+.hk-arena-banner-text {
+  max-width: 17rem;
+  padding: 0.3rem 0.55rem;
+  border: var(--border);
+  background: var(--paper);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.35;
+  rotate: 1.5deg;
+}
+
+.hk-arena-hp {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+  height: 1.75rem;
+}
+
+.hk-arena .hk-hp {
+  border-color: var(--paper);
+}
+
+/* Slots: a <button> each, the key in a ring of 12 pixel cells that light up while it charges. */
+.hk-arena-slots {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hk-arena-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 4rem;
+  padding: 0.4rem 0.45rem;
+  overflow: hidden;
+  border: 2px solid var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--paper) 30%, transparent);
+  cursor: pointer;
+  translate: 0 0;
+  transition: translate 100ms ease-out;
+}
+
+.hk-arena-slot[aria-disabled="true"] {
+  cursor: default;
+}
+
+/* Charging: recessed paper; ready: lime, with a hot shadow. */
+.hk-arena[data-view="fight"] .hk-arena-slot:not([data-ready], [data-empty]) {
+  background: var(--paper-2);
+}
+
+.hk-arena-slot[data-ready] {
+  background: var(--lime);
+  box-shadow: 3px 3px 0 var(--hot);
+}
+
+.hk-arena-slot[data-ready]:hover {
+  translate: -1px -1px;
+}
+
+.hk-arena-slot:not([aria-disabled="true"]):active {
+  translate: 2px 2px;
+}
+
+.hk-arena-slot[data-empty] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--paper);
+  box-shadow: none;
+}
+
+.hk-ring {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(4, 7px);
+  grid-template-rows: repeat(4, 7px);
+  gap: 2px;
+}
+
+.hk-ring i {
+  background: currentColor;
+}
+
+/* Out of a fight every ring is full; in it, each cell lights up as the cooldown fills. */
+.hk-arena[data-view="fight"] .hk-ring i:not(.is-on),
+.hk-arena-slot[data-empty] .hk-ring i {
+  opacity: 0.16;
+}
+
+.hk-ring-key {
+  display: grid;
+  grid-area: 2 / 2 / 4 / 4;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.55rem;
+  line-height: 1;
+}
+
+.hk-arena-slot[data-empty] .hk-ring-key {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.hk-arena-controls {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  height: 6rem;
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-controls {
+    flex-wrap: nowrap;
+    height: 2.75rem;
+  }
+}
+
+/* The narrowest phones: FIGHT!, Auto-fire and Edit loadout take a row each (+ Skip battle in
+   Lite), and the slot stats hide the "DMG" unit visually (screen readers still hear it). */
+@media (max-width: 359.98px) {
+  .hk-arena-controls {
+    height: 9.25rem;
+  }
+
+  .hk-slot-unit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.hk-arena .hk-btn {
+  box-shadow: 3px 3px 0 var(--lime);
+}
+
+.hk-arena .hk-btn:hover {
+  box-shadow: 4px 4px 0 var(--lime);
+}
+
+.hk-arena .hk-btn:active {
+  box-shadow: 0 0 0 var(--lime);
+}
+
+/* One fixed width for FIGHT! / Retreat / Rematch: the label swap never nudges its neighbours. */
+.hk-arena-primary {
+  flex: none;
+  width: 9.75rem;
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Skip battle is a Lite / reduced-motion control (spec §5, §6.4); CSS decides before hydration. */
+.hk-skip-battle {
+  display: none;
+}
+
+html[data-lite="true"] .hk-skip-battle,
+.hk-skip-battle[data-force] {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-skip-battle {
+    display: inline-flex;
+  }
+}
+
+.hk-arena-loot {
+  flex: none;
+  height: 4.6rem;
+  overflow: hidden;
+}
+
+.hk-loot-chip {
+  min-height: 1.6rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.hk-arena-log {
+  flex: none;
+  height: 3.6rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  line-height: 1.38;
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-log {
+    height: 2.3rem;
+  }
+}
+
+/* Edit loadout, in place over the Arena body. */
+.hk-arena-edit {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.hk-arena-edit-slots {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-edit-slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hk-arena-edit-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.25rem;
+  padding: 0 0.25rem 0 0.35rem;
+  border: 2px solid var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.hk-arena-edit-slot.is-empty {
+  border-style: dashed;
+  background: transparent;
+  color: var(--paper);
+}
+
+.hk-arena-unequip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hk-arena-unequip:hover {
+  background: var(--hot);
+}
+
+.hk-arena-unequip[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--paper);
+}
+
+.hk-arena-edit-list {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 0;
+  padding: 2px 6px 6px 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 640px) {
+  .hk-arena-edit-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hk-arena-edit-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .hk-arena-edit-list {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.hk-arena-item {
+  display: block;
+  width: 100%;
+  height: 2.75rem;
+  padding: 0.25rem 0.45rem;
+  border: 2px solid color-mix(in srgb, var(--paper) 40%, transparent);
+  background: transparent;
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+  translate: 0 0;
+  transition: translate 120ms ease-out;
+}
+
+.hk-arena-item:hover,
+.hk-arena-item[aria-expanded="true"] {
+  border-color: var(--paper);
+  translate: -1px -1px;
+}
+
+.hk-arena-item[data-equipped] {
+  border-color: var(--lime);
+}
+
+/* Boss tutorial coach marks (spec §5.3): small, non-blocking, on the stage, arrow to the target. */
+.hk-coach {
+  position: absolute;
+  z-index: 3;
+  max-width: min(13rem, calc(100% - 1rem));
+  padding: 0.45rem 0.6rem 0.35rem;
+  border: var(--border);
+  background: var(--lime);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  text-align: left;
+}
+
+.hk-coach::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  background: var(--lime);
+}
+
+/* 1 loadout, 2 slots: bottom right, pointing at the controls (below on phones, beside above). */
+.hk-coach:is([data-target="loadout"], [data-target="slots"]) {
+  right: 0.5rem;
+  bottom: 1.5rem;
+}
+
+.hk-coach:is([data-target="loadout"], [data-target="slots"])::after {
+  right: 1.25rem;
+  bottom: -7px;
+  rotate: 45deg;
+}
+
+@media (min-width: 768px) {
+  .hk-coach:is([data-target="loadout"], [data-target="slots"])::after {
+    right: -7px;
+    bottom: 0.9rem;
+    rotate: -45deg;
+  }
+}
+
+/* 3 boss: bottom left pointing up at it (top left pointing down on wide stages). */
+.hk-coach[data-target="boss"] {
+  left: 0.5rem;
+  bottom: 1.5rem;
+}
+
+.hk-coach[data-target="boss"]::after {
+  top: -7px;
+  right: 1.25rem;
+  rotate: -135deg;
+}
+
+@media (min-width: 1024px) {
+  .hk-coach[data-target="boss"] {
+    top: 0.5rem;
+    bottom: auto;
+  }
+
+  .hk-coach[data-target="boss"]::after {
+    top: auto;
+    bottom: -7px;
+    rotate: 45deg;
+  }
+}
+
+.hk-coach-skip {
+  min-height: 1.5rem;
+  margin-top: 0.2rem;
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-transform: uppercase;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.hk-arena[data-coach="loadout"] [data-edit-loadout],
+.hk-arena[data-coach="slots"] .hk-arena-slots {
+  outline: 2px dashed var(--lime);
+  outline-offset: 4px;
+}
+
+.hk-arena[data-coach="boss"] .hk-arena-stage {
+  outline: 2px dashed var(--lime);
+  outline-offset: 3px;
+}
+
+html[data-lite="true"] :is(.hk-arena-slot, .hk-arena-item) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.hk-arena-slot, .hk-arena-item) {
+    transition: none;
+  }
+}
+/* end phase 6A: arena */
+
+/* ── phase 6B: projects scenes + cursor ──────────────────────────────────
+ * Scene A showcase (components/chapters/ProjectsChapter.tsx + projects/ShowcaseMotion.tsx),
+ * Scene B grid filter / hover / Peek (projects/{GridFilter,CardHover}.tsx, components/project/
+ * Peek*.tsx), the DEFEATED stamp, and the custom cursor (components/game/cursor/*).
+ * Motion is transform / opacity only — except the showcase background colour (spec §2), which
+ * lives on its own solid layer.
+ */
+
+/* ── Scene A: featured showcase ──────────────────────────────────────── */
+
+.hk-showcase {
+  --gutter: max(1rem, env(safe-area-inset-left));
+  position: relative;
+}
+
+.hk-showcase-stage {
+  position: relative;
+}
+
+.hk-showcase-bg {
+  display: none;
+}
+
+.hk-showcase-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+/* Text of the stage sits on ink chips: readable on ink and on any project accent (AA). */
+.hk-showcase-tag,
+.hk-showcase-hint,
+.hk-showcase-counter {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--paper);
+  line-height: 1;
+}
+
+.hk-showcase-tag {
+  padding: 0.5rem 0.75rem;
+  box-shadow: 3px 3px 0 var(--lime);
+}
+
+.hk-showcase-hint {
+  padding: 0.45rem 0.6rem;
+  border-color: transparent;
+}
+
+.hk-showcase-hint [data-hint="pin"] {
+  display: none;
+}
+
+.hk-showcase-counter {
+  display: inline-grid;
+  gap: 0.4rem;
+  min-width: 6.5rem;
+  padding: 0.5rem 0.7rem 0.55rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.hk-showcase-rail {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--paper) 25%, transparent);
+}
+
+.hk-showcase-rail > span {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* The end cap is ink: its focus ring goes inside, in lime, so it reads on any stage colour. */
+.hk-showcase-cap a:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: -8px;
+}
+
+/*
+ * Pinned version (desktop, motion on, ≥ 2 cartridges). The selector pair: before hydration CSS
+ * decides alone (`html[data-lite]` comes from the pre-paint script, so this is already right on
+ * the first paint and the page height never jumps); once ShowcaseMotion runs it sets
+ * `data-pin="on|off"` and only that counts. The media query must equal PIN_QUERY there.
+ * The pin itself is `position: sticky`: the wrapper reserves (count + 1) × 100vh, the 100vh stage
+ * sticks to the top for count × 100vh of scrolling (≈ 100vh per project), then scrolls away.
+ */
+@media (min-width: 1024px) and (min-height: 600px) and (prefers-reduced-motion: no-preference) {
+  html[data-lite="false"] .hk-showcase[data-pinnable]:not([data-pin]),
+  .hk-showcase[data-pin="on"] {
+    height: calc((var(--count) + 1) * 100vh);
+
+    & .hk-showcase-stage {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.25rem;
+      height: 100vh;
+      padding-top: 3.75rem; /* the HUD row */
+    }
+
+    /* Full-bleed colour layer behind the stage; GSAP fades it in and tweens its colour. */
+    & .hk-showcase-bg {
+      display: block;
+      position: absolute;
+      inset-block: 0;
+      left: calc(-1 * var(--gutter));
+      right: calc(-1 * var(--gutter));
+      background: var(--ink);
+      opacity: 0;
+    }
+
+    & .hk-showcase-hint [data-hint="swipe"] {
+      display: none;
+    }
+
+    & .hk-showcase-hint [data-hint="pin"] {
+      display: inline;
+    }
+
+    & .hk-showcase-track {
+      scroll-snap-type: none;
+      padding-block: 1.75rem 2.25rem; /* room for the active card's lift and the hard shadows */
+    }
+
+    & .hk-showcase-card {
+      width: min(60rem, 64vw);
+    }
+
+    & .hk-showcase-cap {
+      width: min(19rem, 24vw);
+    }
+
+    /* Landscape cartridge: cover left, text right — a whole cartridge fits a laptop screen. */
+    & .hk-cart {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      box-shadow: 8px 8px 0 var(--ink); /* an accent shadow would vanish on its own accent */
+    }
+
+    /* The focus ring takes ink or paper, whichever reads on the card's accent (the stage colour
+       while it is active). */
+    & .hk-cart:has(a:focus-visible) {
+      outline-color: var(--card-on);
+    }
+
+    & .hk-cart-strip {
+      grid-column: 1 / -1;
+    }
+
+    & .hk-cart-cover {
+      align-self: start;
+      padding: 1rem;
+    }
+
+    & .hk-cart-body {
+      gap: 0.7rem;
+      padding: 1.25rem 1.5rem 1.4rem 0.6rem;
+    }
+
+    & .hk-cart-title {
+      font-size: clamp(2rem, 0.9rem + 2.1vw, 3.25rem);
+    }
+
+    & .hk-cart-tagline {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: 1rem;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  /* Once GSAP drives the track it is a plain row, not a scroller. */
+  .hk-showcase[data-pin="on"][data-scrub] .hk-showcase-track {
+    overflow: visible;
+    will-change: transform;
+  }
+}
+
+/* Short laptop screens: a tighter cartridge. */
+@media (min-width: 1024px) and (min-height: 600px) and (max-height: 760px) and (prefers-reduced-motion: no-preference) {
+  html[data-lite="false"] .hk-showcase[data-pinnable]:not([data-pin]),
+  .hk-showcase[data-pin="on"] {
+    & .hk-showcase-card {
+      width: min(52rem, 58vw);
+    }
+
+    & .hk-cart-cover {
+      padding: 0.75rem;
+    }
+
+    & .hk-cart-title {
+      font-size: clamp(1.75rem, 0.6rem + 2vw, 2.6rem);
+    }
+
+    & .hk-cart-tagline {
+      -webkit-line-clamp: 2;
+    }
+
+    & .hk-showcase-track {
+      padding-block: 1.25rem 1.75rem;
+    }
+  }
+}
+
+/* ── DEFEATED stamp (cards + cartridges) ─────────────────────────────── */
+
+.hk-defeated {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  padding: 0.45em 0.75em 0.4em;
+  background: var(--hot);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  font-size: clamp(0.875rem, 2.4vw, 1.25rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% -50%;
+  rotate: -11deg;
+  animation: hk-stamp 420ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.hk-defeated.is-sm {
+  font-size: 0.75rem;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+@keyframes hk-stamp {
+  from {
+    opacity: 0;
+    scale: 1.7;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+html[data-lite="true"] .hk-defeated {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-defeated {
+    animation: none;
+  }
+}
+
+/* Boss HP after the boss fell: struck through, same characters (same width). */
+[data-boss-hp][data-defeated] {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* ── Scene B: grid filter ────────────────────────────────────────────── */
+
+.hk-grid-filter {
+  --filter-shadow: var(--ink);
+}
+
+.hk-grid-filter[data-tone="ink"] {
+  --filter-shadow: var(--lime);
+}
+
+.hk-filters {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 2.5rem;
+}
+
+.hk-filter-search {
+  position: relative;
+  max-width: 30rem;
+}
+
+.hk-filter-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  color: var(--ink);
+  pointer-events: none;
+  translate: 0 -50%;
+}
+
+.hk-filter-input {
+  min-height: 2.9rem;
+  padding-left: 2.5rem;
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--filter-shadow);
+}
+
+.hk-filter-input::placeholder {
+  color: var(--ink-2);
+  opacity: 1;
+}
+
+.hk-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hk-filter-label {
+  min-width: 3.25rem;
+  font-size: 0.75rem;
+}
+
+.hk-filter-chip {
+  min-height: 2.25rem;
+  padding-inline: 0.6rem 0.4rem;
+  box-shadow: 2px 2px 0 var(--filter-shadow);
+  cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.hk-filter-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--filter-shadow);
+}
+
+.hk-filter-chip:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--filter-shadow);
+}
+
+.hk-filter-chip[aria-pressed="true"] {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+/* State without colour: an empty box, filled when pressed. */
+.hk-filter-box {
+  display: inline-block;
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid currentColor;
+}
+
+.hk-filter-chip[aria-pressed="true"] .hk-filter-box {
+  background: currentColor;
+}
+
+.hk-filter-count {
+  min-width: 1.3rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
+.hk-filter-more,
+.hk-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.65rem;
+  border: 2px dashed currentColor;
+  border-radius: 2px;
+  color: inherit;
+  font-size: 0.6875rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hk-filter-more:hover,
+.hk-filter-clear:hover {
+  border-style: solid;
+}
+
+.hk-filter-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  min-height: 2.25rem;
+}
+
+[data-grid-cell][data-filtered="out"] {
+  display: none;
+}
+
+.hk-grid-empty {
+  max-width: 32rem;
+  margin-top: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 6px 6px 0 var(--filter-shadow);
+}
+
+/* ── Scene B: card hover (cover swap) + Peek button ──────────────────── */
+
+.hk-card-hover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms ease-out;
+}
+
+.hk-card-hover video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-grid-item][data-hover] .hk-card-hover[data-ready] {
+  opacity: 1;
+}
+
+/* Above the stretched title link (z 10). Phones: bottom-left of the cover strip; wider: the
+   cover's top-right corner. With a mouse it shows on card hover / keyboard focus inside. */
+.hk-peek-btn {
+  position: absolute;
+  left: 0.4rem;
+  bottom: 0.4rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.55rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 var(--ink);
+  font-size: 0.6875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    opacity 150ms ease-out,
+    transform 120ms ease-out;
+}
+
+.hk-peek-btn:hover {
+  background: var(--lime);
+  transform: translate(-1px, -1px);
+}
+
+.hk-peek-btn:active {
+  transform: translate(1px, 1px);
+}
+
+@media (min-width: 640px) {
+  .hk-peek-btn {
+    top: 0.6rem;
+    right: 0.6rem;
+    bottom: auto;
+    left: auto;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hk-peek-btn {
+    opacity: 0;
+  }
+
+  [data-grid-item]:hover .hk-peek-btn,
+  [data-grid-item]:focus-within .hk-peek-btn {
+    opacity: 1;
+  }
+}
+
+/* ── Peek dialog (uses the .hk-modal shell of the trophy dialog) ─────── */
+
+.hk-peek-panel {
+  width: min(56rem, 100%);
+  box-shadow: 8px 8px 0 var(--peek-accent, var(--hot));
+}
+
+.hk-peek-frame {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.hk-peek-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+
+.hk-peek-slide.is-on {
+  opacity: 1;
+}
+
+.hk-peek-thumb {
+  width: 4.75rem;
+  border: 2px solid var(--ink);
+  opacity: 0.6;
+  cursor: pointer;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.hk-peek-thumb:hover {
+  opacity: 0.9;
+}
+
+.hk-peek-thumb[aria-pressed="true"] {
+  opacity: 1;
+  box-shadow: 3px 3px 0 var(--ink);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-peek-slide,
+  .hk-peek-thumb,
+  .hk-peek-btn,
+  .hk-card-hover {
+    transition: none;
+  }
+}
+
+/* ── Custom cursor (spec §2) ─────────────────────────────────────────── */
+
+/* Only while the dot is on screen (and not over a text field / iframe): it is the pointer then.
+   !important also beats inline cursors (Draggable's grab). */
+html[data-hk-cursor],
+html[data-hk-cursor] * {
+  cursor: none !important;
+}
+
+.hk-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  contain: layout style;
+  will-change: transform;
+  transition: opacity 150ms ease-out;
+}
+
+.hk-cursor[data-visible] {
+  opacity: 1;
+}
+
+.hk-cursor[data-mode="text"],
+.hk-cursor[data-mode="hidden"] {
+  opacity: 0;
+}
+
+.hk-cursor-dot {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--paper);
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25),
+    opacity 120ms ease-out;
+}
+
+/* Over links / buttons: a hollow ring (the label underneath stays readable). */
+.hk-cursor[data-mode="hover"] .hk-cursor-dot {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1.5px var(--hot),
+    0 0 0 1px var(--paper);
+  transform: scale(2.2);
+}
+
+.hk-cursor[data-mode="label"] .hk-cursor-dot {
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+.hk-cursor[data-pressed] .hk-cursor-dot {
+  transform: scale(0.7);
+}
+
+.hk-cursor-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.5rem 0.65rem 0.45rem;
+  background: var(--lime);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -50% -50%;
+  transform: scale(0.4) rotate(-8deg);
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.25),
+    opacity 120ms ease-out;
+}
+
+.hk-cursor[data-mode="label"] .hk-cursor-label {
+  opacity: 1;
+  transform: scale(1) rotate(-4deg);
+}
+
+.hk-cursor[data-mode="label"][data-pressed] .hk-cursor-label {
+  transform: scale(0.88) rotate(-4deg);
+}
+
+/* end phase 6B: projects scenes + cursor */
+
+/* ── phase 6C: stage, deck, modal ──────────────────────────────────────
+   Project Stage modal (components/project/modal), Preview Deck (components/project/deck,
+   Gallery, VideoEmbed), next / previous tiles (ProjectNav), lock caption (stage/LockCaption).
+   Motion only on transform / opacity / clip-path; Lite and reduced motion drop every
+   transition here. */
+
+/* Stage modal. z 50: over the HUD (40), under the hint card (55, so the Arena's boss hint shows
+   on top), other dialogs (56), toasts (58) and the grain (60). */
+html[data-stage-modal] {
+  background: color-mix(in srgb, var(--ink) 82%, var(--paper));
+}
+
+.hk-stage-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.hk-stage-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+}
+
+.hk-stage-modal-panel {
+  position: absolute;
+  top: max(0.625rem, env(safe-area-inset-top));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 2px 18px 0 0;
+  box-shadow: 8px 8px 0 var(--accent, var(--hot));
+}
+
+@media (min-width: 768px) {
+  .hk-stage-modal-panel {
+    top: 1.5rem;
+    right: clamp(1rem, 3vw, 3rem);
+    left: clamp(1rem, 3vw, 3rem);
+  }
+}
+
+/* Its own stacking context, so stage content (the cover is z 10) never covers the ✕. */
+.hk-stage-modal-scroller {
+  position: relative;
+  z-index: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) transparent;
+}
+
+.hk-stage-modal-close {
+  z-index: 3;
+}
+
+.hk-stage-modal-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.9rem;
+  border: 2px solid var(--paper);
+  color: var(--paper);
+  font-size: 0.75rem;
+  visibility: hidden;
+}
+
+/* Only when the stage takes a moment (a quick open never shows it). */
+.hk-stage-modal[data-phase="waiting"] .hk-stage-modal-loading {
+  visibility: visible;
+  animation: hk-6c-fade 0.2s 0.25s both;
+}
+
+.hk-stage-modal-caret {
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--lime);
+  animation: hk-blink 0.8s steps(2, jump-none) infinite;
+}
+
+@keyframes hk-6c-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes hk-6c-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Lock caption next to Open site / Repo. */
+[data-lock-caption] [data-lock-ui] {
+  color: var(--ink-2);
+}
+
+[data-lock-caption] [data-unlocked-ui] {
+  color: var(--ink);
+}
+
+[data-lock-caption] [data-unlocked-ui] svg {
+  padding: 1px;
+  background: var(--lime);
+  border: 1.5px solid var(--ink);
+}
+
+/* Segmented control (device switch, live preview size). */
+.hk-segment {
+  display: inline-flex;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+}
+
+.hk-segment-btn {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.6875rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hk-segment-btn + .hk-segment-btn {
+  border-left: 2px solid var(--ink);
+}
+
+.hk-segment-btn[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.hk-segment-btn:focus-visible {
+  outline-offset: -5px;
+}
+
+/* Deck tabs. */
+.hk-deck-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hk-deck-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px 10px 2px 2px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.hk-deck-tab:hover {
+  transform: translate(-1px, -1px);
+}
+
+.hk-deck-tab[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 3px 3px 0 var(--accent);
+  transform: rotate(-1deg);
+}
+
+@media (max-width: 479.98px) {
+  .hk-deck-tabs {
+    gap: 0.5rem;
+  }
+
+  .hk-deck-tab {
+    gap: 0.4rem;
+    padding-inline: 0.7rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* One panel at a time (PreviewDeck sets data-active); a hidden panel leaves the a11y tree too. */
+.hk-deck-panel:not([data-active]) {
+  display: none;
+}
+
+.hk-deck-panel[data-active] {
+  animation: hk-6c-rise 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* Screenshot carousel. */
+.hk-carousel-viewport {
+  overflow: hidden;
+  /* Room for the frames' hard shadows, which the clip would cut. */
+  padding: 4px 4px 14px;
+  margin: -4px -4px -14px;
+}
+
+.hk-carousel-viewport[data-draggable] {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.hk-carousel-track {
+  display: flex;
+  transform: translate3d(calc(var(--index, 0) * -100% + var(--drag, 0px)), 0, 0);
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hk-carousel-track[data-dragging] {
+  transition: none;
+  cursor: grabbing;
+}
+
+/* The left padding is wider than the viewport's 4px shadow allowance, so the edge of the next
+   slide never peeks in. */
+.hk-carousel-slide {
+  display: flex;
+  flex: 0 0 100%;
+  justify-content: center;
+  align-items: flex-end;
+  min-width: 0;
+  padding-inline: 8px 10px;
+}
+
+/* The screen button: the whole device screen opens the lightbox. */
+.hk-shot {
+  position: relative;
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.hk-shot:focus-visible {
+  outline-offset: -6px;
+}
+
+.hk-shot img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.hk-shot-screen {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-2);
+}
+
+/* Tall captures: the image box is taller than the screen; hover scrolls it inside. The shift is
+   a share of the box's own height (translateY %), so it fits any frame size. */
+.hk-shot-inner {
+  transform: translateY(0);
+  transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (hover: hover) {
+  .hk-shot[data-tall]:hover .hk-shot-inner,
+  .hk-shot[data-tall]:focus-visible .hk-shot-inner {
+    transform: translateY(calc(var(--shot-shift, 0) * -100%));
+    transition-duration: var(--shot-dur, 3s);
+    transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+}
+
+.hk-shot-hint {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  border: 2px solid var(--ink);
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 0.625rem;
+  transition: opacity 0.2s ease-out;
+}
+
+.hk-shot:hover .hk-shot-hint {
+  opacity: 0;
+}
+
+.hk-shot-zoom {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
+}
+
+.hk-shot:hover .hk-shot-zoom,
+.hk-shot:focus-visible .hk-shot-zoom {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: none) {
+  .hk-shot-hint {
+    display: none;
+  }
+
+  .hk-shot-zoom {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hk-thumb {
+  display: block;
+  width: 4.5rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  opacity: 0.6;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
+}
+
+.hk-thumb:hover {
+  opacity: 1;
+}
+
+.hk-thumb[aria-current="true"] {
+  opacity: 1;
+  box-shadow: 3px 3px 0 var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Lightbox (z 57: over the Stage modal and the hint card, under toasts). */
+.hk-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 57;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--ink) 95%, transparent);
+  color: var(--paper);
+}
+
+.hk-lightbox-bar,
+.hk-lightbox-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.75rem
+    max(1rem, env(safe-area-inset-left));
+}
+
+.hk-lightbox-foot {
+  padding: 0.75rem max(1rem, env(safe-area-inset-right)) max(0.9rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+
+.hk-lightbox-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border: 2px solid var(--paper);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 3px 3px 0 var(--accent, var(--hot));
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.hk-lightbox-btn:hover {
+  transform: translate(-1px, -1px);
+}
+
+.hk-lightbox-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+}
+
+.hk-lightbox-btn[aria-pressed="true"] {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.hk-lightbox-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 0 1rem;
+  touch-action: pan-y pinch-zoom;
+}
+
+.hk-lightbox-stage[data-zoomed] {
+  display: block;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--paper) transparent;
+}
+
+.hk-lightbox-figure {
+  margin: 0;
+}
+
+.hk-lightbox-stage[data-zoomed] .hk-lightbox-figure {
+  display: flex;
+  justify-content: center;
+  min-width: min-content;
+  padding: 0.5rem 0 2rem;
+}
+
+.hk-lightbox-image {
+  max-width: none;
+  border: 2px solid var(--paper);
+  box-shadow: 8px 8px 0 var(--accent, var(--hot));
+  cursor: zoom-in;
+}
+
+.hk-lightbox-stage[data-zoomed] .hk-lightbox-image {
+  cursor: grab;
+}
+
+.hk-lightbox-image img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Video facade. */
+.hk-video-facade {
+  display: block;
+  cursor: pointer;
+}
+
+.hk-video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 4rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px 14px 2px 2px;
+  background: var(--hot);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  transform: translate(-50%, -50%) rotate(-2deg);
+  transition: transform 0.15s ease-out;
+}
+
+.hk-video-facade:hover .hk-video-play,
+.hk-video-facade:focus-visible .hk-video-play {
+  transform: translate(-50%, -50%) rotate(0deg) scale(1.06);
+}
+
+.hk-video-note {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.3rem 0.55rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.625rem;
+}
+
+.hk-video-facade:focus-visible {
+  outline-offset: -6px;
+}
+
+/* Live preview. */
+.hk-live-screen {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-2);
+}
+
+/* The site is laid out at a real device width and scaled into the frame (--live-scale, set
+   from the screen's width). Faded in once it has loaded. */
+.hk-live-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: calc(100% / var(--live-scale, 1));
+  border: 0;
+  background: #fff;
+  transform: scale(var(--live-scale, 1));
+  transform-origin: 0 0;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.hk-live-frame.is-ready {
+  opacity: 1;
+}
+
+.hk-live-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+  color: var(--ink);
+  text-align: center;
+}
+
+.hk-live-overlay.is-locked {
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
+  color: var(--paper);
+}
+
+.hk-live-overlay.is-fallback {
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.hk-live-card {
+  max-width: 26rem;
+  padding: 1.25rem 1.25rem 1.4rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px 14px 2px 2px;
+  background: var(--paper);
+  box-shadow: 6px 6px 0 var(--accent);
+  text-align: left;
+}
+
+.hk-live-lock {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 2px solid var(--paper);
+  background: var(--ink);
+  color: var(--lime);
+  box-shadow: 4px 4px 0 var(--accent);
+  transform: rotate(-4deg);
+}
+
+.hk-live-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid var(--ink);
+  border-right-color: transparent;
+  animation: hk-6c-spin 0.8s linear infinite;
+}
+
+@keyframes hk-6c-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hk-live-led {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.hk-live-led.is-on {
+  background: var(--lime);
+}
+
+/* On phones the 16:10 desktop frame is small: the overlays use the space they have. */
+@media (max-width: 479.98px) {
+  .hk-live-overlay {
+    gap: 0.6rem;
+    padding: 0.75rem;
+  }
+
+  .hk-live-overlay .hk-display,
+  .hk-live-card .hk-display {
+    font-size: 1.25rem;
+  }
+
+  .hk-live-card {
+    padding: 0.85rem;
+  }
+
+  .hk-live-card .text-sm {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Next / previous level tiles. */
+.hk-level-tile {
+  position: relative;
+  display: grid;
+  min-height: 12rem;
+  overflow: hidden;
+  border: 2px solid var(--paper);
+  border-radius: 2px;
+  color: var(--paper);
+  background: var(--ink);
+  box-shadow: 6px 6px 0 var(--tile-accent);
+  text-decoration: none;
+  transition: transform 0.2s ease-out;
+}
+
+@media (min-width: 768px) {
+  .hk-level-tile {
+    min-height: 15rem;
+  }
+}
+
+.hk-level-tile:hover {
+  transform: translateY(-4px);
+}
+
+.hk-level-tile:focus-visible {
+  outline-offset: 6px;
+}
+
+.hk-level-tile-face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem;
+  /* The accent bar on the ink face: the neighbour's colour without hovering (touch). */
+  background: linear-gradient(var(--tile-accent), var(--tile-accent)) top / 100% 0.5rem no-repeat;
+}
+
+@media (min-width: 768px) {
+  .hk-level-tile-face {
+    padding: 2rem;
+  }
+}
+
+.hk-level-tile[data-nav="next"] .hk-level-tile-face {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.hk-level-tile-reveal {
+  background: var(--tile-accent);
+  color: var(--tile-on);
+  /* Wiped in from the side the arrow points away from: next from the left, previous from the
+     right. */
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.hk-level-tile[data-nav="prev"] .hk-level-tile-reveal {
+  clip-path: inset(0 0 0 100%);
+}
+
+.hk-level-tile:hover .hk-level-tile-reveal,
+.hk-level-tile:focus-visible .hk-level-tile-reveal {
+  clip-path: inset(0 0 0 0);
+}
+
+.hk-level-tile-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid currentColor;
+  font-size: 0.6875rem;
+}
+
+.hk-level-tile-reveal .hk-level-tile-kicker {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.hk-level-tile-title {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  text-transform: uppercase;
+}
+
+.hk-level-tile[data-nav="prev"] .hk-level-tile-title {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.hk-level-tile-arrow {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  margin-bottom: 0.2rem;
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hk-level-tile:hover .hk-level-tile-arrow,
+.hk-level-tile:focus-visible .hk-level-tile-arrow {
+  transform: translateX(0.5rem);
+}
+
+.hk-level-tile[data-nav="prev"]:hover .hk-level-tile-arrow,
+.hk-level-tile[data-nav="prev"]:focus-visible .hk-level-tile-arrow {
+  transform: translateX(-0.5rem);
+}
+
+/* Lite / reduced motion: states switch, nothing travels. */
+html[data-lite="true"]
+  :is(
+    .hk-carousel-track,
+    .hk-shot-inner,
+    .hk-shot-zoom,
+    .hk-thumb,
+    .hk-deck-tab,
+    .hk-level-tile,
+    .hk-level-tile-reveal,
+    .hk-level-tile-arrow,
+    .hk-live-frame,
+    .hk-video-play,
+    .hk-lightbox-btn
+  ) {
+  transition: none;
+}
+
+html[data-lite="true"] .hk-deck-panel[data-active],
+html[data-lite="true"] .hk-stage-modal[data-phase="waiting"] .hk-stage-modal-loading {
+  animation: none;
+}
+
+html[data-lite="true"] .hk-shot[data-tall] .hk-shot-inner {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .hk-carousel-track,
+    .hk-shot-inner,
+    .hk-shot-zoom,
+    .hk-thumb,
+    .hk-deck-tab,
+    .hk-level-tile,
+    .hk-level-tile-reveal,
+    .hk-level-tile-arrow,
+    .hk-live-frame,
+    .hk-video-play,
+    .hk-lightbox-btn
+  ) {
+    transition: none;
+  }
+
+  .hk-deck-panel[data-active],
+  .hk-stage-modal-caret,
+  .hk-live-spinner {
+    animation: none;
+  }
+
+  .hk-shot[data-tall] .hk-shot-inner {
+    transform: none !important;
+  }
+}
+
+/* end phase 6C: stage, deck, modal */

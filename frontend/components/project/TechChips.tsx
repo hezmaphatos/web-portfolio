@@ -2,12 +2,14 @@
 
 import { Lock } from "lucide-react";
 import Link from "next/link";
+import { useRef } from "react";
 
 import { useGameConfig } from "@/components/game/GameConfig";
 import { visibleTechCount } from "@/lib/battle";
 import type { SkillRef } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+import { useUnlockReveal } from "./arena/useUnlockReveal";
 import { useBossLock } from "./useBossLock";
 
 type Props = {
@@ -44,7 +46,11 @@ export function TechChips({
   link,
 }: Props) {
   const { techVisiblePercent } = useGameConfig();
-  const { locked } = useBossLock(projectId, bossEnabled);
+  const lock = useBossLock(projectId, bossEnabled);
+  const { locked } = lock;
+  // Unlock sequence (spec §6.4 step 5): the "???" chips rotate open, staggered, after a live defeat.
+  const listRef = useRef<HTMLUListElement>(null);
+  useUnlockReveal(listRef, lock, projectId, "chips");
   if (skills.length === 0) return null;
 
   const alwaysOpen = bossEnabled
@@ -64,6 +70,7 @@ export function TechChips({
 
   return (
     <ul
+      ref={listRef}
       className={cn("flex flex-wrap gap-2", className)}
       aria-label="Tech stack"
       data-tech-chips

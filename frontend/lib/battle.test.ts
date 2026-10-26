@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   autoFireStep,
+  autoFireUntil,
   battleElapsed,
   bestLoadout,
   bossPhase,
@@ -19,6 +20,7 @@ import {
   LOADOUT_SIZE,
   MAX_TIMELINE_HITS,
   nextReadyAt,
+  phaseShift,
   readySlots,
   remainingCooldown,
   resetBattle,
@@ -479,6 +481,107 @@ describe("autoFireStep", () => {
     expect(step.hits.map((h) => h.slot)).toEqual([0, 1]);
     expect(step.state).toMatchObject({ hp: 0, defeated: true, defeatedAt: 1000 });
     expect(step.state.slots[2].readyAt).toBe(1000);
+  });
+});
+
+describe("autoFireUntil", () => {
+  const seeded = defaultLoadout(SEEDED_SKILLS);
+
+  it("fires each volley at its exact ready time, whatever the frame time", () => {
+    const loadout = [g(10, 2000, { id: 1 }), g(20, 1000, { id: 2 }), null, g(30, 2000, { id: 4 })];
+    const state = createBattle(loadout, 500, 0);
+    const step = autoFireUntil(state, 2016); // one late frame covers two volleys
+    expect(step.hits.map((h) => [h.slot, h.at])).toEqual([
+      [1, 1000],
+      [0, 2000],
+      [1, 2000],
+      [3, 2000],
+    ]);
+    expect(step.state.hp).toBe(500 - 20 - 10 - 20 - 30);
+    // The slots recharge from their exact firing time, not from the frame time.
+    expect(step.state.slots[1].readyAt).toBe(3000);
+  });
+
+  it("nothing due → same state, no hits", () => {
+    const state = createBattle([g(10, 2000)], 100, 0);
+    const step = autoFireUntil(state, 1999);
+    expect(step.hits).toEqual([]);
+    expect(step.state).toBe(state);
+  });
+
+  it("volleys due before Auto-fire was switched on fire at `since`", () => {
+    const state = createBattle([g(10, 1000, { id: 1 }), g(10, 3000, { id: 2 })], 100, 0);
+    const step = autoFireUntil(state, 2600, 2500);
+    // Slot 0 was ready at 1000 but Auto-fire came on at 2500; slot 1 is still charging.
+    expect(step.hits.map((h) => [h.slot, h.at])).toEqual([[0, 2500]]);
+    expect(step.state.slots[0].readyAt).toBe(3500);
+    expect(autoFireUntil(state, 2400, 2500).hits).toEqual([]);
+  });
+
+  it("frame-stepped Auto-fire clears every seeded boss at exactly clearTime", () => {
+    for (const boss of SEEDED_BOSSES) {
+      let state = createBattle(seeded, boss.hp, 0, boss.tier);
+      for (let now = 0; !state.defeated && now < 10_000; now += 16.7) {
+        state = autoFireUntil(state, now).state;
+      }
+      expect(state.defeated).toBe(true);
+      expect(state.defeatedAt).toBe(clearTime(seeded, boss.hp));
+      expect(state.hits.length).toBe(simulate(seeded, boss.hp).hits);
+    }
+  });
+
+  it("matches simulate's timeline hit for hit", () => {
+    const next = rng(42);
+    for (let round = 0; round < 50; round++) {
+      const loadout = Array.from({ length: LOADOUT_SIZE }, (_, i) => randomSkill(next, i + 1));
+      const hp = 10 + Math.floor(next() * 291);
+      const state = autoFireUntil(createBattle(loadout, hp, 0), Number.POSITIVE_INFINITY).state;
+      expect(state.hits).toEqual(simulate(loadout, hp).timeline);
+    }
+  });
+
+  it("stops at the killing blow and never fires after a defeat", () => {
+    const state = createBattle([g(60, 1000), g(60, 1000), g(60, 1000)], 100, 0);
+    const step = autoFireUntil(state, 50_000);
+    expect(step.hits).toHaveLength(2);
+    expect(step.state).toMatchObject({ hp: 0, defeated: true, defeatedAt: 1000 });
+    expect(autoFireUntil(step.state, 99_000).hits).toEqual([]);
+  });
+
+  it("an empty loadout or a NaN time fires nothing", () => {
+    const empty = createBattle([], 100, 0);
+    expect(autoFireUntil(empty, 1e9).hits).toEqual([]);
+    expect(autoFireUntil(createBattle([g(10, 1000)], 100, 0), Number.NaN).hits).toEqual([]);
+  });
+});
+
+describe("phaseShift", () => {
+  const colossus = (hp: number) => ({ ...createBattle([g(1, 1000)], 150, 0, "final"), hp });
+
+  it("reports the phase a final boss enters at 66 % and 33 %", () => {
+    const start = createBattle([g(51, 1000), g(51, 1000)], 150, 0, "final");
+    const first = fire(start, 0, 1000).state; // 99 HP = 66 % → phase 2
+    expect(phaseShift(start, first)).toBe(2);
+    const second = fire(first, 1, 1000).state; // 48 HP = 32 % → phase 3
+    expect(phaseShift(first, second)).toBe(3);
+  });
+
+  it("null when the phase stays the same", () => {
+    const start = createBattle([g(10, 1000)], 150, 0, "final");
+    expect(phaseShift(start, fire(start, 0, 1000).state)).toBeNull();
+    expect(phaseShift(colossus(150), colossus(150))).toBeNull();
+  });
+
+  it("a big hit that skips phase 2 reports phase 3 only", () => {
+    const start = createBattle([g(110, 1000)], 150, 0, "final");
+    expect(phaseShift(start, fire(start, 0, 1000).state)).toBe(3);
+  });
+
+  it("the killing blow is never a taunt, and other tiers never shift", () => {
+    const start = createBattle([g(200, 1000)], 150, 0, "final");
+    expect(phaseShift(start, fire(start, 0, 1000).state)).toBeNull();
+    const regular = createBattle([g(60, 1000)], 100, 0, "regular");
+    expect(phaseShift(regular, fire(regular, 0, 1000).state)).toBeNull();
   });
 });
 

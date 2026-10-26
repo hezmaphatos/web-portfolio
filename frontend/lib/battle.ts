@@ -7,7 +7,8 @@
  *
  * Used by the admin Boss Preview (`simulate`, `defaultLoadout`, `bestLoadout`, `formatClearTime`),
  * the Skill Tree Training Dummy and the Project Stage Battle Arena (`createBattle`, `fire`,
- * `autoFireStep`, …), and the tech-chip lock (`visibleTechCount`, `splitTech`).
+ * `autoFireStep`, `autoFireUntil`, `phaseShift`, …), and the tech-chip lock (`visibleTechCount`,
+ * `splitTech`).
  *
  * Numbers are exact for the integer milliseconds and HP the API serves (`cooldown_ms`,
  * `damage`, `boss_hp` are integers); fractional inputs work but are subject to float rounding.
@@ -469,6 +470,46 @@ export function autoFireStep(state: BattleState, now: number): AutoFireResult {
     }
   }
   return { state: current, hits };
+}
+
+/**
+ * Auto-fire catch-up for a frame-driven UI (§6.4 step 3, Arena and Training Dummy): fires every
+ * volley that came due up to `now`, each at its **exact** ready time (not at the frame time), so a
+ * fight with Auto-fire on from FIGHT! ends at exactly `clearTime(loadout, hp)` whatever the frame
+ * rate. `since` = the moment Auto-fire was switched on: volleys that came due before it (while the
+ * visitor was firing by hand, or not at all) fire at `since`. Stops at the killing blow; returns
+ * the same state and no hits when nothing is due. Terminates: every volley fires ≥ 1 hit and the
+ * boss HP is finite, and volleys after `now` are never fired.
+ */
+export function autoFireUntil(
+  state: BattleState,
+  now: number,
+  since = Number.NEGATIVE_INFINITY,
+): AutoFireResult {
+  const hits: Hit[] = [];
+  let current = state;
+  for (;;) {
+    const next = nextReadyAt(current);
+    if (next === null) break;
+    const at = Math.max(next, since);
+    if (!(at <= now)) break; // also stops on NaN
+    const step = autoFireStep(current, at);
+    if (step.hits.length === 0) break;
+    current = step.state;
+    hits.push(...step.hits);
+  }
+  return { state: current, hits };
+}
+
+/**
+ * The visual phase a `final` boss just entered (§6.4 step 4: "di 66% dan 33% HP sprite berubah dan
+ * teks ejekan muncul"), or `null` when the phase did not change — or when the boss fell: a killing
+ * blow that crosses a threshold shows the defeat, not a taunt. Several thresholds crossed at once
+ * (a big hit, or one Auto-fire volley) report only the phase reached.
+ */
+export function phaseShift(before: BattleState, after: BattleState): BossPhase | null {
+  if (after.defeated || after.phase === before.phase) return null;
+  return after.phase;
 }
 
 // ── Estimates ──────────────────────────────────────────────────────────
