@@ -1,12 +1,15 @@
 /**
  * Pre-paint head script (spec §5.1 point 8). Runs synchronously while the browser parses <head>,
- * i.e. before the first paint and long before React hydrates, and writes two attributes on <html>:
+ * i.e. before the first paint and long before React hydrates, and writes these attributes on <html>:
  *
  * - `data-lite="true|false"`: Lite mode (stored preference, else prefers-reduced-motion or
  *   Save-Data), so Lite CSS applies from the first frame. <StoreHydrator> keeps it in sync later.
  * - `data-boot="play|skip"`: whether the boot screen (splash) plays. CSS shows the server-rendered
  *   overlay only under `play`, so there is never a flash of the Hero before the overlay, and with
  *   JavaScript off (no script → no attribute) the overlay simply never shows.
+ * - `data-theme="hackker"`: Hackker Mode (the Konami theme, stored preference `hackerMode`), so a
+ *   returning hacker never sees one frame of the paper theme. Never on /admin (own theme).
+ *   <StoreHydrator> mirrors later changes; components/game/konami/ switches it.
  *
  * No imports: the function is serialised with `.toString()` into an inline <script> (see
  * app/layout.tsx), and BootScreen calls it again in the browser when React's dev-only Strict Mode
@@ -32,13 +35,15 @@ export function prepaint(prefsKey: string, seenKey: string): void {
     // very old browser: assume full motion
   }
 
-  // zustand persist stores {"state":{"lite":"auto"|"on"|"off",…},"version":0}.
+  // zustand persist stores {"state":{"lite":"auto"|"on"|"off","hackerMode":bool,…},"version":0}.
   let pref = "auto";
+  let hacker = false;
   try {
     const raw = window.localStorage.getItem(prefsKey);
     const stored = raw ? JSON.parse(raw) : null;
     const storedLite = stored && stored.state ? stored.state.lite : null;
     if (storedLite === "on" || storedLite === "off") pref = storedLite;
+    hacker = !!(stored && stored.state && stored.state.hackerMode === true);
   } catch {
     // storage blocked or corrupt JSON: follow the system settings
   }
@@ -56,6 +61,9 @@ export function prepaint(prefsKey: string, seenKey: string): void {
 
   root.setAttribute("data-lite", lite ? "true" : "false");
   root.setAttribute("data-boot", seen || reduce || lite ? "skip" : "play");
+  if (hacker && window.location.pathname.indexOf("/admin") !== 0) {
+    root.setAttribute("data-theme", "hackker");
+  }
 }
 
 /** The inline <script> body for app/layout.tsx. */

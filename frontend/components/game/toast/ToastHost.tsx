@@ -67,7 +67,16 @@ function ToastItem({ toast, still }: { toast: Toast; still: boolean }) {
           {toast.icon}
         </span>
       ) : null}
-      <span className="hk-toast-text">{toast.message}</span>
+      <span className="hk-toast-text">
+        {toast.message}
+        {toast.description ? (
+          <>
+            {/* Read as "Badge unlocked: Explorer. You visited every chapter." */}
+            <span className="sr-only">. </span>
+            <span className="hk-toast-desc">{toast.description}</span>
+          </>
+        ) : null}
+      </span>
     </motion.div>
   );
 }

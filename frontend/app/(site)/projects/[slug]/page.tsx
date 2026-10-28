@@ -31,6 +31,19 @@ import type { ProjectDetail } from "@/lib/types";
 
 export const instant = false;
 
+/**
+ * Real 404 for unknown slugs. Under Cache Components a slug missing from generateStaticParams is
+ * otherwise answered with the route's prerendered fallback shell (`x-nextjs-postponed`): the
+ * layout is flushed with status 200 before the page runs, so `notFound()` can only add a noindex
+ * tag. 'navigation' requires the whole route to be static output, which makes the first request
+ * for an unlisted slug wait for the complete prerender instead — `notFound()` then happens before
+ * any byte is sent (404), and a real new slug is stored as a static page like the others.
+ * (Draft preview still works: Draft Mode bypasses the static output.) Limitation: the 404's
+ * body is Next's error shell, filled in by JavaScript (no-JS visitors get an empty page; crawlers
+ * get 404 + noindex). See docs/DECISIONS.md, phase 7B.
+ */
+export const ensureStatic = "navigation";
+
 /** Cache Components needs at least one param at build time; an empty catalogue 404s on it. */
 const PLACEHOLDER_SLUG = "__no-projects__";
 

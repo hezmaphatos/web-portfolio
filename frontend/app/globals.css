@@ -4936,3 +4936,863 @@ html[data-lite="true"] .hk-shot[data-tall] .hk-shot-inner {
 }
 
 /* end phase 6C: stage, deck, modal */
+
+/* ── phase 7B: hackker mode + 404 ─────────────────────────────────────
+ * Hackker Mode (Konami code, components/game/konami/*): a terminal theme on
+ * html[data-theme="hackker"], applied before the first paint by the pre-paint head script.
+ * Every component is re-skinned through the site tokens only. The paper theme has two surface
+ * tones — paper (light, ink text) and ink (dark, paper text) — while a terminal has one dark
+ * tone, so each kind of surface re-maps --paper / --ink for its own subtree:
+ *   default : paper = terminal black, ink = phosphor green (cards, chips, buttons, chapters);
+ *   ink     : ink stays dark, paper becomes the green text (dark chapters, HUD menu, hints,
+ *             toasts, Arena…), so lime/amber text on them keeps its contrast;
+ *   accent  : amber/green/cyan blocks get dark text (buttons, stickers, badges, ready slots);
+ *   small ink labels stay "reverse video" (green block, dark text), a terminal idiom.
+ * Custom properties inherit, so each rule only has to name the surface, whatever it is nested in.
+ * Text pairs (WCAG AA): green #62f58f on #0b100c ≈ 13:1, dim green #3fcf6e ≈ 8:1,
+ * amber #ffb020 ≈ 10:1, cyan #4fd8ff ≈ 10:1; dark #040705 on every accent ≥ 9:1.
+ * /admin never gets the attribute (pre-paint script + applyTheme skip it).
+ */
+
+html[data-theme="hackker"] {
+  --hk-bg: #0b100c;
+  --hk-bg-2: #111a13;
+  --hk-deep: #040705;
+  --hk-fg: #62f58f;
+  --hk-fg-2: #3fcf6e;
+
+  --paper: var(--hk-bg);
+  --paper-2: var(--hk-bg-2);
+  --ink: var(--hk-fg);
+  --ink-2: var(--hk-fg-2);
+  --hot: #ffb020;
+  --volt: #4fd8ff;
+  --lime: #b7ff3c;
+
+  color-scheme: dark;
+}
+
+/* Mono everywhere: body copy in JetBrains Mono, display type too (heavier, a touch tighter). */
+html[data-theme="hackker"] body {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-weight: 400;
+}
+
+html[data-theme="hackker"] .hk-display {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-weight: 800;
+  font-variation-settings: normal;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 0.3em rgb(98 245 143 / 0.28);
+}
+
+/* Mono glyphs are ~30 % wider than condensed Bricolage: headings sized to fit a line (the hero
+   name, stat values) would overflow. font-size-adjust shrinks the glyphs to the same width
+   relative to each heading's own size (JetBrains Mono x-height 0.55 → 0.43 ≈ ×0.78). */
+html[data-theme="hackker"] .hk-condensed {
+  font-size-adjust: 0.43;
+}
+
+/* The few places that name Bricolage directly (menu titles, damage numbers, toast copy). */
+html[data-theme="hackker"] :is(.hk-menu-title, .hk-dmg-amount, .hk-toast-desc) {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-variation-settings: normal;
+  letter-spacing: -0.03em;
+}
+
+html[data-theme="hackker"] ::selection {
+  background: var(--lime);
+  color: var(--hk-deep);
+}
+
+/* default surfaces: re-asserted so they stay green-on-black inside ink surfaces too */
+html[data-theme="hackker"]
+  :is(
+    .hk-panel,
+    .hk-panel-flat,
+    .hk-btn,
+    .hk-chip,
+    .bg-paper,
+    .hk-hud-status,
+    .hk-hud-btn,
+    .hk-hud-chip,
+    .hk-modal-panel,
+    .hk-stage-modal-panel,
+    .hk-contact-form,
+    .hk-arena-bubble,
+    .hk-arena-slot,
+    .hk-arena-banner-text,
+    .hk-arena-edit-slot,
+    .hk-auto,
+    .hk-fire,
+    .hk-live-card
+  ) {
+  --paper: var(--hk-bg);
+  --ink: var(--hk-fg);
+  --ink-2: var(--hk-fg-2);
+}
+
+/* ink surfaces: stay dark, their "paper" text turns green */
+html[data-theme="hackker"]
+  :is(
+    .bg-ink,
+    .hk-btn-ink,
+    [class*="[--chapter-bg:var(--ink)]"],
+    .hk-boot,
+    .hk-hint,
+    .hk-toast,
+    .hk-menu,
+    .hk-item,
+    .hk-arena,
+    .hk-arena-edit,
+    .hk-modal-panel.is-gold,
+    .hk-showcase-bg,
+    .hk-level-tile,
+    .hk-live-lock,
+    .hk-lightbox-btn
+  ) {
+  --ink: var(--hk-deep);
+  --paper: var(--hk-fg);
+  --ink-2: var(--hk-fg-2);
+}
+
+html[data-overlay="menu"][data-theme="hackker"] {
+  background: var(--hk-deep);
+}
+
+/* accent surfaces: bright block, dark text */
+html[data-theme="hackker"]
+  :is(
+    .bg-hot,
+    .bg-lime,
+    .bg-volt,
+    .hover\:bg-lime:hover,
+    .hk-btn-hot,
+    .hk-sticker,
+    .hk-boot-btn,
+    .hk-hint-btn,
+    .hk-hint-icon,
+    .hk-toast-icon,
+    .hk-menu-toggle[aria-expanded="true"],
+    .hk-menu-here,
+    .hk-menu-extra .hk-btn[aria-current="page"],
+    .hk-modal-panel.is-gold .hk-modal-close,
+    .hk-clear,
+    .hk-field-error-mark,
+    .hk-slot-key,
+    .hk-unequip:hover,
+    .hk-item-slot,
+    .hk-equip-opt:hover,
+    .hk-equip-link:hover,
+    .hk-equip-x:hover,
+    .hk-dummy-stamp,
+    .hk-fire[data-ready],
+    .hk-auto[aria-pressed="true"],
+    .hk-arena-banner-title,
+    .hk-arena-slot[data-ready],
+    .hk-arena-unequip:hover,
+    .hk-coach,
+    .hk-defeated,
+    .hk-filter-chip[aria-pressed="true"],
+    .hk-peek-btn:hover,
+    .hk-cursor-label,
+    .hk-stage-modal-caret,
+    .hk-shot-hint,
+    .hk-lightbox-btn[aria-pressed="true"],
+    .hk-video-play
+  ) {
+  --ink: var(--hk-deep);
+  --paper: var(--hk-deep);
+  --ink-2: var(--hk-deep);
+}
+
+/* …except what sits on them again as a dark chip */
+html[data-theme="hackker"] .hk-auto[aria-pressed="true"] .hk-auto-state {
+  --ink: var(--hk-deep);
+  --paper: var(--hk-fg);
+}
+
+/* small ink labels: reverse video (green block, dark text), wherever they are */
+html[data-theme="hackker"] .bg-ink:is(.hk-pixel, .hk-mono) {
+  --ink: var(--hk-fg);
+  --paper: var(--hk-bg);
+}
+
+/* Colour fields that only make sense on paper become terminal panes. */
+html[data-theme="hackker"] [class*="[--chapter-bg:var(--lime)]"] {
+  --chapter-bg: var(--hk-bg-2);
+}
+
+/* Project accents (admin colours) would break the monochrome: one terminal accent instead.
+   !important: the stage sets them inline (style attribute). */
+html[data-theme="hackker"] :is([data-stage], .hk-lightbox) {
+  --accent: var(--lime) !important;
+}
+
+html[data-theme="hackker"] [data-stage-hero] {
+  --chapter-bg: var(--hk-bg-2) !important;
+  --chapter-fg: var(--hk-fg) !important;
+}
+
+/* Scene A tweens this layer to each project's accent (inline style): keep the pane dark. */
+html[data-theme="hackker"] [data-showcase-bg] {
+  background-color: var(--hk-deep) !important;
+}
+
+html[data-theme="hackker"] [style*="--card-accent"] {
+  --card-accent: var(--hk-fg-2) !important;
+}
+
+html[data-theme="hackker"] [style*="--peek-accent"] {
+  --peek-accent: var(--lime) !important;
+}
+
+/* CRT scanlines over the whole page (static: no animation, no blend mode). */
+.hk-scanlines {
+  display: none;
+}
+
+html[data-theme="hackker"] .hk-scanlines {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 61;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.32) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 62%, rgb(0 0 0 / 0.38) 100%);
+  opacity: 0.55;
+}
+
+/* The switch flash: a CRT band snaps open, flickers and fades (600 ms). Only opacity /
+   clip-path / transform; never mounted in Lite / reduced motion (konami/hackerMode.ts). */
+.hk-crt-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgb(4 7 5 / 0.55) 0 2px, transparent 2px 4px), #62f58f;
+  animation: hk-crt-flash 600ms ease-out forwards;
+}
+
+.hk-crt-flash-band {
+  position: absolute;
+  inset: 0;
+  background: #f3efe6;
+  opacity: 0;
+  animation: hk-crt-band 600ms ease-out forwards;
+}
+
+@keyframes hk-crt-flash {
+  0% {
+    opacity: 0.95;
+    clip-path: inset(49% 0 49% 0);
+  }
+  14% {
+    opacity: 0.9;
+    clip-path: inset(0 0 0 0);
+  }
+  24% {
+    opacity: 0.35;
+    clip-path: inset(0 0 0 0);
+  }
+  32% {
+    opacity: 0.7;
+    clip-path: inset(18% 0 46% 0);
+  }
+  42% {
+    opacity: 0.25;
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hk-crt-band {
+  0% {
+    opacity: 0.9;
+    transform: scaleY(0.02);
+  }
+  18% {
+    opacity: 0.5;
+    transform: scaleY(1);
+  }
+  40%,
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+/* "Exit Hackker Mode" in the HUD menu: only in Hackker Mode. */
+.hk-exit-hackker {
+  display: none;
+}
+
+html[data-theme="hackker"] .hk-exit-hackker {
+  display: inline-flex;
+}
+
+/* ── GAME OVER (404, components/game/gameover/*) ── */
+
+.hk-go {
+  display: flex;
+  align-items: center;
+  min-height: 100svh;
+  padding-top: clamp(5.5rem, 12vw, 8rem);
+}
+
+.hk-go-grid {
+  display: grid;
+  gap: clamp(3.5rem, 8vw, 4.5rem);
+}
+
+@media (min-width: 900px) {
+  .hk-go-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    align-items: center;
+  }
+}
+
+.hk-go-title {
+  line-height: 0.84;
+}
+
+.hk-go-side {
+  position: relative;
+  width: min(100%, 23rem);
+  justify-self: center;
+}
+
+.hk-go-prompt {
+  /* One pixel of the countdown digits. */
+  --px: clamp(0.8rem, 3.4vw, 1.05rem);
+  padding: 1.5rem 1.25rem 1.25rem;
+  rotate: -1deg;
+  text-align: center;
+}
+
+.hk-go-continue {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  line-height: 1;
+}
+
+.hk-go-counter {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  margin-block: 1.1rem 1.35rem;
+}
+
+/* Shows one 5×7 digit of the strip; every cell is 8 rows (7 + gap), so one step = 10 %. */
+.hk-go-window {
+  display: block;
+  width: calc(5 * var(--px));
+  height: calc(7 * var(--px));
+  overflow: hidden;
+  color: var(--ink);
+  animation: hk-go-zero 1ms linear 9s forwards;
+}
+
+.hk-go-strip {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: hk-go-count 9s steps(9, jump-end) forwards;
+}
+
+/* Always takes its line (no layout shift); appears at 0 and blinks four times. */
+.hk-go-coin {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  opacity: 0;
+  animation: hk-go-reveal 1ms linear 9s forwards;
+}
+
+.hk-go-coin > span {
+  display: inline-block;
+  animation: hk-go-blink 1s linear 9s 4;
+}
+
+/* Hover or focus anywhere in the prompt freezes the clock (and the coin with it). */
+.hk-go-prompt:is(:hover, :focus-within)
+  :is(.hk-go-window, .hk-go-strip, .hk-go-coin, .hk-go-coin > span) {
+  animation-play-state: paused;
+}
+
+@keyframes hk-go-count {
+  to {
+    transform: translateY(-90%);
+  }
+}
+
+@keyframes hk-go-zero {
+  to {
+    color: var(--hot);
+  }
+}
+
+@keyframes hk-go-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hk-go-blink {
+  0%,
+  49.9% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.hk-go-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.hk-go-choice {
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+}
+
+/* Reserves its lines: the answer to NO never pushes anything around. */
+.hk-go-quip {
+  min-height: 2.6em;
+  margin-top: 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
+/* No JavaScript: NO is a #hk-go-stay link, and :target shows the answer. */
+.hk-go-quip-nojs {
+  visibility: hidden;
+}
+
+#hk-go-stay:target .hk-go-quip-nojs {
+  visibility: visible;
+}
+
+/* The fallen hero lies on the top edge of the prompt. */
+.hk-go-ko {
+  position: absolute;
+  z-index: 1;
+  top: -2.6rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.hk-go-ko svg {
+  rotate: -90deg;
+  translate: 0 0.35rem;
+}
+
+.hk-go-ko-tag {
+  padding: 0.2rem 0.45rem;
+  border: var(--border);
+  background: var(--hot);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1;
+  rotate: 6deg;
+}
+
+html[data-theme="hackker"] .hk-go-ko-tag {
+  --ink: var(--hk-deep);
+}
+
+/* Lite / reduced motion: the digits still tick (a value change, not movement); no blinking. */
+html[data-lite="true"] .hk-go-coin > span {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-go-coin > span {
+    animation: none;
+  }
+}
+
+/* end phase 7B: hackker mode + 404 */
+
+/* ── phase 7A: badges, sound, rewind ───────────────────────────────────
+ * Badge toasts (components/game/toast + badges/BadgeWatcher), the HUD Badges button and the
+ * Badges drawer (components/game/badges/*), the "Play again" rewind overlay
+ * (components/chapters/contact/PlayAgainLink.tsx). Motion is transform / opacity / clip-path only.
+ */
+
+/* Toast: second line (how the badge was earned) and the pixel icon in the lime square. */
+.hk-toast-desc {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+  opacity: 0.88;
+}
+
+.hk-toast-badge {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* HUD Badges button. Without JavaScript (no data-lite on <html>) an anchor to #hk-badges stands
+   in for it and CSS opens the drawer with :target. */
+.hk-badges-nojs {
+  display: none;
+}
+
+html:not([data-lite]) .hk-badges-toggle,
+html:not([data-lite]) button.hk-badges-close,
+html:not([data-lite]) [data-badges-reset] {
+  display: none;
+}
+
+html:not([data-lite]) .hk-badges-nojs {
+  display: inline-flex;
+}
+
+/* ── Badges drawer ─────────────────────────────────────────────────── */
+
+.hk-badges {
+  position: fixed;
+  inset: 0;
+  z-index: 56; /* like a dialog: over the HUD and the Stage modal, under the toasts (58) */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hk-badges[data-state="open"],
+.hk-badges[data-state="closing"] {
+  visibility: visible;
+}
+
+.hk-badges[data-state="open"] {
+  pointer-events: auto;
+}
+
+html:not([data-lite]) .hk-badges:target {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.hk-badges-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+
+.hk-badges-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, 100%);
+  background: var(--paper);
+  color: var(--ink);
+  border-left: 2px solid var(--ink);
+  box-shadow: -8px 0 0 var(--lime);
+}
+
+@media (max-width: 575.98px) {
+  .hk-badges-panel {
+    border-left: 0;
+    box-shadow: none;
+  }
+}
+
+.hk-badges-head {
+  position: relative;
+  padding: max(1.25rem, env(safe-area-inset-top)) 4.5rem 1rem 1.25rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.hk-badges-title {
+  margin-top: 0.35rem;
+  font-size: clamp(2.75rem, 9vw, 3.75rem);
+}
+
+.hk-badges-count {
+  margin-top: 0.6rem;
+  font-family: var(--font-silkscreen), ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hk-badges-count .hk-mono {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Ten segments, one per badge: the save's progress at a glance. */
+.hk-badges-meter {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 3px;
+  max-width: 17rem;
+  margin-top: 0.55rem;
+}
+
+.hk-badges-meter > span {
+  height: 0.75rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.hk-badges-meter > span.is-on {
+  background: var(--lime);
+}
+
+.hk-badges-close {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.hk-badges-close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.hk-badges-close:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.hk-badges-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.1rem 1.25rem 1.5rem;
+}
+
+.hk-badges-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(14.5rem, 100%), 1fr));
+  gap: 0.9rem;
+}
+
+/* Locked: recessed, dashed, silhouette icon. Unlocked: a hard-edged sticker, slightly tilted. */
+.hk-badge {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.8rem;
+  padding: 0.7rem 0.75rem;
+  background: var(--paper-2);
+  border: 2px dashed color-mix(in srgb, var(--ink) 45%, transparent);
+  border-radius: 2px;
+}
+
+.hk-badge[data-unlocked] {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 2px 12px 2px 2px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.hk-badge-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  background: var(--paper);
+  color: color-mix(in srgb, var(--ink) 30%, var(--paper));
+  border: 2px solid color-mix(in srgb, var(--ink) 40%, transparent);
+  border-radius: 2px;
+}
+
+.hk-badge[data-unlocked] .hk-badge-icon {
+  background: var(--lime);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.hk-badge[data-unlocked][data-tone="hot"] .hk-badge-icon {
+  background: var(--hot);
+}
+
+.hk-badge[data-unlocked][data-tone="volt"] .hk-badge-icon {
+  background: var(--volt);
+}
+
+.hk-badge-lock {
+  position: absolute;
+  right: -0.5rem;
+  bottom: -0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 2px;
+}
+
+.hk-badge-title {
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.hk-badge-text {
+  margin-top: 0.2rem;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.hk-badge-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hk-badge-bar {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 6rem;
+  height: 0.6rem;
+  overflow: hidden;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.hk-badge-bar > span {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform-origin: 0 50%;
+}
+
+.hk-badges-foot {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem max(1.1rem, env(safe-area-inset-bottom));
+  background: var(--paper-2);
+  border-top: 2px solid var(--ink);
+}
+
+.hk-badges-reset,
+.hk-badges-confirm {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+}
+
+/* ── "Play again" rewind (VHS) ─────────────────────────────────────── */
+
+.hk-rewind {
+  position: fixed;
+  inset: 0;
+  z-index: 54; /* over the HUD (40), under the hint card (55) and toasts (58) */
+  overflow: hidden;
+  pointer-events: none;
+  clip-path: inset(50% 0% 50% 0%); /* GSAP opens it like a CRT band */
+}
+
+.hk-rewind-tint {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 38%, transparent);
+}
+
+.hk-rewind-lines {
+  position: absolute;
+  inset: 0 0 -8px;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ink) 42%, transparent) 0 2px,
+    transparent 2px 4px
+  );
+  will-change: transform;
+}
+
+.hk-rewind-band {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  height: 9vh;
+  opacity: 0.55;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--paper) 60%, transparent) 0 3px,
+    transparent 3px 7px,
+    color-mix(in srgb, var(--paper) 25%, transparent) 7px 9px,
+    transparent 9px 16px
+  );
+  will-change: transform;
+}
+
+.hk-rewind-band.is-thin {
+  height: 2.5vh;
+  opacity: 0.85;
+}
+
+.hk-rewind-osd,
+.hk-rewind-counter {
+  position: absolute;
+  color: var(--paper);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.hk-rewind-osd {
+  top: 4.5rem;
+  left: max(1rem, env(safe-area-inset-left));
+  font-size: clamp(1.25rem, 4vw, 2rem);
+}
+
+.hk-rewind-counter {
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 0.75rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-rewind {
+    display: none;
+  }
+
+  .hk-badges-close {
+    transition: none;
+  }
+}
+
+/* end phase 7A: badges, sound, rewind */

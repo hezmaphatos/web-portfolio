@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 
 import { GameChrome } from "@/components/game/GameChrome";
+import { BadgeLayer } from "@/components/game/badges/BadgeLayer";
 import { GameConfigProvider } from "@/components/game/GameConfig";
+import { SoundHost } from "@/components/game/sound/SoundHost";
 import { StageHintHost } from "@/components/game/StageHintHost";
 import { ToastHost } from "@/components/game/toast/ToastHost";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { StoreHydrator } from "@/components/providers/StoreHydrator";
 import { getHome } from "@/lib/api";
+import { featuredBossIds } from "@/lib/badges";
 
 const NO_JS_UNLOCK =
   "[data-lock-ui]{visibility:hidden!important;pointer-events:none!important}" +
@@ -46,7 +49,10 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
 
   return (
     <SmoothScroll>
-      <GameConfigProvider techVisiblePercent={home.site.tech_visible_percent}>
+      <GameConfigProvider
+        techVisiblePercent={home.site.tech_visible_percent}
+        featuredBossIds={featuredBossIds(home.projects)}
+      >
         {/* Without JS the boss lock is off: every tech chip and link is shown, the Arena hidden. */}
         <noscript>
           <style>{NO_JS_UNLOCK}</style>
@@ -68,6 +74,8 @@ export default async function SiteLayout({ children, modal }: LayoutProps<"/">) 
         <main id="main">{children}</main>
         {modal}
         <StageHintHost />
+        <BadgeLayer chapterKeys={home.sections.map((section) => section.key)} />
+        <SoundHost soundDefault={home.site.sound_default} />
         <ToastHost />
         <div className="hk-grain" aria-hidden="true" />
       </GameConfigProvider>

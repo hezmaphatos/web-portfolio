@@ -1,8 +1,12 @@
 "use client";
 
 import { CircleQuestionMark, Feather, Medal, Volume2, VolumeX } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
+import { BADGE_DRAWER_ID } from "@/components/game/badges/BadgeDrawer";
+import { openBadgeDrawer, useBadgeDrawer } from "@/components/game/badges/drawer";
+import { BADGES, knownBadges } from "@/lib/badges";
+import { MEDIA } from "@/lib/gsap";
 import { BOSS_HINT_KEY } from "@/lib/hints";
 import { unlockAudio } from "@/lib/sound";
 import { useGameStore, useHintStore, useHudStore, useLiteMode, usePrefsStore } from "@/lib/store";
@@ -19,7 +23,7 @@ function Led({ on }: { on: boolean }) {
   return <span aria-hidden="true" className={cn("hk-hud-led", on && "is-on")} />;
 }
 
-/** Sound on/off. Off by default (site.sound_default); the effects themselves arrive in phase 7. */
+/** Sound on/off (lib/sound.ts). Off by default (site.sound_default). */
 export function SoundToggle({
   soundDefault,
   className,
@@ -36,8 +40,10 @@ export function SoundToggle({
       className={cn("hk-hud-btn", className)}
       aria-pressed={on}
       onClick={() => {
-        if (!on) unlockAudio(); // a click is a user gesture: the AudioContext may start now
         setSound(!on);
+        // A click is a user gesture: with sound now on, the AudioContext may start (after the
+        // switch, so unlockAudio() sees "on"); <SoundHost> then confirms with a click sound.
+        if (!on) unlockAudio();
       }}
     >
       <Icon aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
@@ -69,18 +75,55 @@ export function LiteToggle({ className, labelClassName }: ToggleProps) {
   );
 }
 
+/** Lite mode or the OS asks for reduced motion (read at call time, outside React). */
+const isStill = () =>
+  document.documentElement.dataset.lite === "true" || window.matchMedia(MEDIA.reduce).matches;
+
 /**
- * Unlocked badge count. Read-only until the Badges drawer exists (phase 7): a status chip,
- * not a button that does nothing.
+ * Badges: the unlocked count, and the button that opens the Badges drawer
+ * (components/game/badges). Same box as before (a .hk-hud-btn), so the HUD keeps its layout down
+ * to 320 px. A new badge makes it pop (WAAPI transform, not in Lite / reduced motion).
+ * Without JavaScript the button is hidden (CSS) and an anchor opens the drawer with :target.
  */
 export function BadgeCount({ className }: { className?: string }) {
-  const count = useGameStore((state) => (state.hydrated ? state.badges.length : 0));
+  const count = useGameStore((state) => (state.hydrated ? knownBadges(state.badges).length : 0));
+  const pulse = useBadgeDrawer((state) => state.pulse);
+  const button = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const el = button.current;
+    if (!pulse || !el || isStill()) return;
+    el.animate(
+      [
+        { transform: "scale(1) rotate(0deg)" },
+        { transform: "scale(1.22) rotate(-6deg)", offset: 0.35 },
+        { transform: "scale(1) rotate(0deg)" },
+      ],
+      { duration: 520, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    );
+  }, [pulse]);
+
   return (
-    <p className={cn("hk-hud-chip", className)} title="Badges unlocked">
-      <Medal aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
-      <span className="sr-only">Badges unlocked: </span>
-      <span className="hk-mono min-w-[2ch] text-center">{count}</span>
-    </p>
+    <>
+      <button
+        ref={button}
+        type="button"
+        className={cn("hk-hud-btn hk-badges-toggle", className)}
+        aria-haspopup="dialog"
+        aria-controls={BADGE_DRAWER_ID}
+        title="Badges"
+        onClick={(event) => openBadgeDrawer(event.currentTarget)}
+      >
+        <Medal aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
+        <span className="sr-only">Badges: </span>
+        <span className="hk-mono min-w-[2ch] text-center">{count}</span>
+        <span className="sr-only"> of {BADGES.length} unlocked</span>
+      </button>
+      <a href={`#${BADGE_DRAWER_ID}`} className={cn("hk-hud-btn hk-badges-nojs", className)}>
+        <Medal aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
+        <span className="sr-only">Badges</span>
+      </a>
+    </>
   );
 }
 

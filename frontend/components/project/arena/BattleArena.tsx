@@ -29,6 +29,7 @@ import {
 } from "@/lib/battle";
 import { gsap, MEDIA, useGSAP } from "@/lib/gsap";
 import { BOSS_HINT, BOSS_HINT_KEY, BOSS_TUTORIAL_KEY, HINT_VISIBLE_RATIO } from "@/lib/hints";
+import { sfx } from "@/lib/sound";
 import { useGameStore, useHudStore } from "@/lib/store";
 import type { BossTier, ProjectSummary, Skill } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -470,6 +471,7 @@ export function BattleArena({ project, skills }: Props) {
         // The win is saved at once; the lock UIs flip open when the banner is up.
         scheduleReveal(project.id, performance.now() + (quiet() ? 0 : REVEAL_AT_MS));
         claimDefeat({ id: project.id, slug: project.slug, tier: boss.tier });
+        sfx.bossDefeat();
         advance("defeat");
         say(
           `${hitText} ${boss.name} defeated in ${formatClearTime(time)}!` +
@@ -494,6 +496,7 @@ export function BattleArena({ project, skills }: Props) {
         setHp(state.hp);
         const shift = before ? phaseShift(before, state) : null;
         let text = `${hits.map((hit) => `${hit.attackName} hits for ${hit.damage}.`).join(" ")} Boss HP ${state.hp} of ${state.maxHp}.`;
+        hits.forEach((hit, i) => sfx.hit(hit.damage, i * 0.08)); // pitch by damage (phase 7)
         hitFx(hits, state, shift !== null);
         advance("hit");
         if (state.defeated) {
@@ -599,6 +602,7 @@ export function BattleArena({ project, skills }: Props) {
         showBubble(null);
         scheduleReveal(project.id, performance.now());
         claimDefeat({ id: project.id, slug: project.slug, tier: boss.tier });
+        sfx.bossDefeat();
         advance("defeat");
         go("victory");
         draw(null, 0);

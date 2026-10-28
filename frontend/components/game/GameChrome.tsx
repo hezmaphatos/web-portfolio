@@ -6,6 +6,7 @@ import { AvatarPath } from "@/components/game/AvatarPath";
 import { ChapterTracker } from "@/components/game/ChapterTracker";
 import { CustomCursor } from "@/components/game/cursor/CustomCursor";
 import { Hud } from "@/components/game/hud/Hud";
+import { HackkerMode } from "@/components/game/konami/HackkerMode";
 import { useChapterSections } from "@/components/game/useChapterSections";
 import { useHudStore } from "@/lib/store";
 import type { Section, Site } from "@/lib/types";
@@ -47,6 +48,7 @@ export function GameChrome({ site, sections, bossIds }: Props) {
       />
       <AvatarPath sections={chapters} />
       <CustomCursor />
+      <HackkerMode />
     </>
   );
 }

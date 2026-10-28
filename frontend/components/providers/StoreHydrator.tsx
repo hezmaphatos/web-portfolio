@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { applyTheme } from "@/components/game/konami/hackerMode";
 import { useGameStore, useLiteMode, usePrefsStore } from "@/lib/store";
 
 type Props = {
@@ -13,10 +14,12 @@ type Props = {
 /**
  * Reads the save cookie and the preferences after mount (both stores use skipHydration), so the
  * server HTML — always the locked, default state — is what the first client render matches.
- * Also mirrors Lite mode onto <html data-lite> for CSS.
+ * Also mirrors Lite mode onto <html data-lite> and Hackker Mode onto <html data-theme> for CSS.
  */
 export function StoreHydrator({ skillIds, projectIds }: Props) {
   const lite = useLiteMode();
+  const prefsReady = usePrefsStore((state) => state.hydrated);
+  const hackerMode = usePrefsStore((state) => state.hackerMode);
 
   useEffect(() => {
     void usePrefsStore.persist.rehydrate();
@@ -30,6 +33,12 @@ export function StoreHydrator({ skillIds, projectIds }: Props) {
   useEffect(() => {
     document.documentElement.dataset.lite = lite ? "true" : "false";
   }, [lite]);
+
+  // Only once the stored prefs are in: before that `hackerMode` is the default (false) and would
+  // strip the theme the pre-paint script applied — a flash of the paper theme.
+  useEffect(() => {
+    if (prefsReady) applyTheme(hackerMode);
+  }, [prefsReady, hackerMode]);
 
   return null;
 }

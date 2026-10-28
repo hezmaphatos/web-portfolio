@@ -4,6 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { gsap, useGSAP } from "@/lib/gsap";
+import { sfx } from "@/lib/sound";
 
 type Props = {
   /** The sender's name and address, echoed back. */
@@ -37,6 +38,13 @@ export function StageClear({ name, email, newBadge, count, still, onAgain }: Pro
 
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Lite / reduced motion: the jingle plays at once (there is no burst to wait for).
+  useEffect(() => {
+    if (still) sfx.stageClear();
+    // On mount only: toggling Lite later must not replay it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useGSAP(
@@ -79,7 +87,8 @@ export function StageClear({ name, email, newBadge, count, still, onAgain }: Pro
           )
           .to(pixel, { opacity: 0, duration: 0.25, ease: "steps(3)" }, 0.5 + duration * 0.7);
       });
-      // Sound (phase 7): the "stage clear" jingle starts with the burst.
+      // The "stage clear" jingle starts with the burst.
+      timeline.call(() => sfx.stageClear(), [], 0.5);
     },
     { scope: root, dependencies: [] },
   );

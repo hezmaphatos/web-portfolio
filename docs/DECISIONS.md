@@ -150,3 +150,30 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - `/projects/[slug]` is a blocking route (`instant = false`, params awaited outside `<Suspense>`): the ISR App-Shell pattern streamed the whole stage as a hidden segment that only JavaScript reveals, so no-JS visitors and crawlers saw nothing. Prerendered slugs stay static; slugs published later render on their first request. Unknown slugs still answer 200 (noindex) with Next's default not-found under PPR — the GAME OVER 404 with a real status is phase 7/8 work.
 - Test runs inflated the dev DB view/defeat counters; they were reset to 0 after verification.
 - Production integration (headless, 1440×900): card → modal with no flicker, Auto-fire defeat in 4.5 s incl. the 0.9 s intro, locked chips 1 → 0, cookie written, Esc back to the same scroll position, CLS 0.008, direct URL renders the full page.
+
+## Phase 7B — Hackker Mode + GAME OVER 404
+
+- Hackker Mode = `<html data-theme="hackker">`, preference `hackerMode` in localStorage (`hackker_prefs`). The pre-paint head script sets it before the first paint, `<StoreHydrator>` mirrors later changes only after the prefs rehydrated (before that the default `false` would strip it), and `/admin` never gets it.
+- The theme re-skins through tokens only, per surface kind: default surfaces map paper → terminal black / ink → phosphor green; "ink" surfaces (dark chapters, menu, hints, toasts, Arena…) keep ink dark and turn paper green; accent blocks get dark text; small ink labels stay reverse video. Project accent colours (stage hero, Scene A background, card shadows) are neutralised to the terminal palette; covers and images keep their colours.
+- Mono display type is ~30 % wider than condensed Bricolage: `.hk-condensed` gets `font-size-adjust: 0.43` in Hackker Mode so fitted headings (hero name) still fit at 320 px.
+- Touch alternative to the Konami code: swipe ↑ ↑ ↓ ↓ ← → ← → anywhere, then tap twice (no HUD element needed; the HUD nickname is hidden below 360 px). Inputs more than 3 s apart start over.
+- The Konami key listener is a window capture listener registered in a layout effect from `<GameChrome>` (before `<main>`), so it runs before the Battle Arena's capture listener; the completing "A" is `preventDefault`ed and never toggles Auto-fire.
+- Exit without the code: "Exit Hackker Mode" button in the HUD menu overlay, CSS-visible only under the theme (focus goes back to the Menu button).
+- GAME OVER countdown is pure CSS (`steps()` strip of pixel digits, `animation-play-state: paused` on hover/focus-within, INSERT COIN at 0, never navigates), so it works without JS; NO is a `#hk-go-stay` link (:target line) that JS upgrades to "restart + quip". Lite keeps the discrete tick, drops the blink.
+- Unknown URLs: the root `app/not-found.tsx` wraps GAME OVER in the real `app/(site)/layout.tsx` component (HUD and everything the site layout mounts, no copy). It is prerendered as `/_not-found` and served with a real 404 and full HTML. A catch-all `app/(site)/[...missing]` calling `notFound()` was rejected: also 404, but its prerender is an empty error shell that only JavaScript fills.
+- Unknown project slugs: `ensureStatic = "navigation"` on `/projects/[slug]` → an unlisted slug waits for the complete static render instead of being answered with the fallback shell (`x-nextjs-postponed`, already 200), so `notFound()` gives a real 404. Draft preview still renders (Draft Mode bypasses static output). Limitation: that 404 body is Next's error shell, rendered by JavaScript (no-JS visitors see an empty page; crawlers get 404 + noindex). A Proxy slug check rewriting to `/_not-found` would fix it — not done (Proxy would need an API call per project request).
+
+## Phase 7A — Badges, drawer, sound, rewind
+
+- Badge definitions live in code (`lib/badges.ts`, spec §5) with pure predicates; derived badges (Explorer, Curious, Collector, Night Owl) are only evaluated after the save cookie is read and the splash is gone, and only changes between two hydrated states toast — badges restored from the cookie never toast.
+- Curious counts opened Project Stages in localStorage (`hackker_opened`, slugs, capped at 3) because the cookie format is fixed by spec §5.2; it is cleared on Reset save / NEW GAME (a changed save `t` means a reset).
+- Collector = every featured project with a boss (featured boss ids come from the site layout through GameConfig), not only the ≤ 6 shown in the showcase; with no featured bosses it is never awarded. Explorer = every chapter Home actually shows (hidden chapters don't block it).
+- Badge toasts are batched behind one timer (one jingle per batch); defeat badges toast ≈ 1.2 s after the KO, as the unlock sequence starts.
+- The drawer is server-rendered and hidden (no-JS `:target` fallback without Reset); it holds the exact privacy line and a two-step Reset save.
+- Sound (Web Audio oscillators only): off by default; no AudioContext is created while sound is off; notes requested while the context wakes are dropped after 200 ms so stale sounds never burst out later.
+- Play again = a VHS-rewind overlay (clip-path band, scanlines, "◂◂ REW → ▸ PLAY") while Lenis scrolls to the top; Lite/reduced motion or near the top: a plain jump.
+- Known: the ChapterTracker counts chapters passed during fast scrolls (rewind, menu jumps) as visited, so Explorer can be earned that way; after a Reset on the same page Explorer needs a reload to be earnable again.
+
+## Phase 7 — verification
+
+- Production build (port 3101): `/this-does-not-exist` and `/a/b/c` → 404 with the full GAME OVER HTML; `/projects/does-not-exist` → 404 (GAME OVER renders once JS runs; without JS that page is blank — crawlers still get 404 + noindex); `/projects` stable (one load in 4 s — the dev reload loop came from a since-removed catch-all route); Konami toggles Hackker Mode, unlocks `konami`, and the theme survives a reload; the badges drawer lists 10 badges with the cookie notice.

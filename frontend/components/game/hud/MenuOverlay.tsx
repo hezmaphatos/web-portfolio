@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { MouseEvent, ReactNode, Ref } from "react";
 
+import { ExitHackkerButton } from "@/components/game/konami/ExitHackkerButton";
 import type { SectionKey } from "@/lib/types";
 import { pad2 } from "@/lib/utils";
 
@@ -121,6 +122,8 @@ export function MenuOverlay({
           >
             All projects <span aria-hidden="true">▸</span>
           </Link>
+          {/* Hackker Mode only (CSS): switch the Konami theme off without the code. */}
+          <ExitHackkerButton />
           {/* No-JS only (CSS): an unknown fragment un-targets the panel without scrolling. */}
           <a href="#hk-menu-closed" className="hk-btn hk-menu-nojs">
             Close

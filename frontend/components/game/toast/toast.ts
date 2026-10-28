@@ -5,7 +5,7 @@ import { create } from "zustand";
 
 /*
  * The site's toast system (phase 5): small HUD-style notes in the top-right corner, announced
- * politely to screen readers. Used for "Email copied" now and for badge unlocks in phase 7.
+ * politely to screen readers. Used for "Email copied" and for badge unlocks (components/game/badges).
  *
  *   import { toast } from "@/components/game/toast/toast";
  *   toast("Email copied", { icon: <Check /> });
@@ -16,6 +16,8 @@ import { create } from "zustand";
 export type ToastOptions = {
   /** Small icon in the lime square on the left (a lucide icon, a pixel glyph …). Decorative. */
   icon?: ReactNode;
+  /** A second, smaller line under the message (e.g. how a badge was earned). */
+  description?: string;
   /** How long it stays, in ms (default 3200). */
   duration?: number;
 };
@@ -23,6 +25,7 @@ export type ToastOptions = {
 export type Toast = {
   id: number;
   message: string;
+  description: string | null;
   icon: ReactNode;
   duration: number;
 };
@@ -51,6 +54,7 @@ export function toast(message: string, options: ToastOptions = {}): number {
   useToastStore.getState().push({
     id,
     message,
+    description: options.description ?? null,
     icon: options.icon ?? null,
     duration: options.duration ?? DEFAULT_DURATION,
   });

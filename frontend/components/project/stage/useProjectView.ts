@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { recordProjectOpen } from "@/components/game/badges/opened";
+
 /**
  * Counts one view per opening of a Project Stage (spec §6.3 "setiap pembukaan project menambah
  * view_count"): POST {NEXT_PUBLIC_API_URL}/public/projects/{slug}/view, fire-and-forget (the
@@ -15,6 +17,7 @@ import { useEffect } from "react";
  */
 export function useProjectView(slug: string, enabled: boolean): void {
   useEffect(() => {
+    if (enabled) recordProjectOpen(slug); // Curious badge counter (phase 7, idempotent per slug)
     const base = process.env.NEXT_PUBLIC_API_URL;
     if (!enabled || !base) return;
     const timer = setTimeout(() => {
