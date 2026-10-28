@@ -172,8 +172,40 @@ Choices the spec leaves open, or small deviations from it. One entry each: decis
 - The drawer is server-rendered and hidden (no-JS `:target` fallback without Reset); it holds the exact privacy line and a two-step Reset save.
 - Sound (Web Audio oscillators only): off by default; no AudioContext is created while sound is off; notes requested while the context wakes are dropped after 200 ms so stale sounds never burst out later.
 - Play again = a VHS-rewind overlay (clip-path band, scanlines, "◂◂ REW → ▸ PLAY") while Lenis scrolls to the top; Lite/reduced motion or near the top: a plain jump.
-- Known: the ChapterTracker counts chapters passed during fast scrolls (rewind, menu jumps) as visited, so Explorer can be earned that way; after a Reset on the same page Explorer needs a reload to be earnable again.
+- Known: after a Reset on the same page Explorer needs a reload to be earnable again. (Chapters passed during fast scrolls no longer count — fixed in phase 8B.)
 
 ## Phase 7 — verification
 
 - Production build (port 3101): `/this-does-not-exist` and `/a/b/c` → 404 with the full GAME OVER HTML; `/projects/does-not-exist` → 404 (GAME OVER renders once JS runs; without JS that page is blank — crawlers still get 404 + noindex); `/projects` stable (one load in 4 s — the dev reload loop came from a since-removed catch-all route); Konami toggles Hackker Mode, unlocks `konami`, and the theme survives a reload; the badges drawer lists 10 badges with the cookie notice.
+
+## Phase 8A — Playwright smoke tests + accessibility pass
+
+- Suite in `frontend/e2e/` against already-running servers (never started by Playwright): Chromium only, one worker, no retries, long timeouts for cold `next dev` compiles. The admin logs in once per run through the real form (setup project = smoke test d) and the session is reused via `storageState`; a teardown sweeps `e2e-smoke-*` projects and revokes the token.
+- The boss test creates its own published boss (3 skills, live + repo URL) through the admin API — no seeded project has links — defeats it with reduced motion's Skip battle, checks chips + links, reloads, then deletes it. The create test drives the real admin form and deletes through the real UI (API fallback in `finally`).
+- Tests wait for React hydration of the element they touch (`__reactProps$` key) instead of fixed sleeps; the splash is skipped with an init script (`sessionStorage.boot_seen = "1"`).
+- axe (`@axe-core/playwright`, WCAG 2.0–2.2 A/AA + best practices) fails only on serious/critical; moderate/minor findings are attached to the report.
+- Paper on volt measured 4.47:1 (AA needs 4.5 for small text): `.bg-volt.text-paper` text uses `#fbf9f4` (4.8:1) instead of changing the `--volt`/`--paper` tokens; Hackker Mode keeps its own dark text on accent blocks.
+- About bio scrub: words start at opacity 0.65 instead of 0.22 (1.6:1 → ≈ 5:1) so the bio meets AA at every scroll position, Lighthouse included; the light-up effect is subtler but kept.
+- Flip button: stable name "Flip photo to the pixel avatar" contains both visible tags ("Flip ▸" / "◂ Photo") — WCAG 2.5.3 label-in-name; `aria-pressed` kept.
+- HUD root is a `<header>` (banner landmark): its status cells were outside every landmark (axe `region`).
+- axe scans wait for running CSS transitions to end and hover an open stage hint (pauses its 7 s auto-close): a scan that caught the hint mid-fade reported a false 1.8:1 contrast failure.
+- The setup compiles `/api/revalidate` before any admin write: Laravel gives the webhook 3 s, a cold `next dev` needs longer for its first hit, and the dropped revalidation left Home stale. The boss test also waits until Home lists the new project — the save store drops defeated ids the layout doesn't know yet, so a stale Home re-locks the boss after a reload. Before deleting it, the boss test leaves the project page: with `php artisan serve` (one request at a time) the delete's revalidation timed out behind a render still in flight there.
+
+## Phase 8B — Performance + leftovers
+
+- Lighthouse runs on `next build && next start` (port 3102, separate dist dir only while measuring). Mobile scores swing ±6 points between identical runs on this machine (lantern simulation + other processes): judge by several runs.
+- The splash is never the LCP element (it starts at opacity 0 and never outgrows the Hero name, which is the LCP) and causes no layout shift (fixed overlay, scroll locked, CLS 0). It does lower Speed Index on a first visit (the filmstrip keeps changing for ~4 s) — accepted, it is the designed first-visit experience.
+- Home's long tasks came from hydration + every motion island setting up in the same commit. Fixes: Draggable toys (skill tree, drag-to-equip) are created on the first pointer over their area (`onFirstPointer`), chapters below the fold set up when they come within one viewport (`useMotionGate(root)`), counters measure all before writing (no layout per counter). The Hero and the splash still set up at hydration (they are on screen).
+- DOM size: the generative placeholder draws one `<path>` per colour and the boss tier icon one path (Home 4,017 → ~2,900 elements; a full style + layout of the page ≈ 30 % cheaper).
+- `lib/save.ts` uses `zod/mini`: the classic build shipped ~30 KB gzip (80 % unused) to every public page for one schema.
+- Not done (bigger refactors): Motion (~47 KB gzip) is still in the Home bundle through the always-mounted toast host, trophy room, Peek provider and badge drawer; the global CSS (~40 KB gzip) includes admin utilities; Bricolage keeps its `opsz` axis (131 KB font file) for the headline look.
+- About stats: below 360 px the stat number and suffix are a step smaller so "3.91/4.00" fits a ~100 px card (static sizes, no shift).
+- Explorer: a chapter counts as visited only after staying ≥ 40 % visible for 600 ms (rewind / chapter-menu jumps fly past without counting); the HUD LV still follows the scroll immediately.
+- Unknown project slug: `notFound()` is thrown inside a `<Suspense>` whose fallback is GAME OVER in `<noscript>` — status stays 404, the HTML keeps the layout + GAME OVER for no-JS visitors, JS renders the segment's `not-found.tsx`. Only the not-found branch gets the boundary: wrapping the found stage too turned it into a hidden streamed segment again.
+
+## Phase 8 — integration notes
+
+- Root `npm run dev`: the queue runs `queue:listen --timeout=0` and `concurrently` no longer uses `-k` — a queue worker hitting its 60 s timeout used to take the API and web servers down with it.
+- The revalidation webhook timeout is configurable (`REVALIDATE_TIMEOUT`, default 10 s, was 3 s) with one retry: it runs after the admin response (defer), and a cold `next dev` route compile on a single-threaded `php artisan serve` regularly exceeded 3 s.
+- Final measurements (production build, headless Chromium, machine under ~60 % background CPU load): Home desktop Lighthouse Performance 92 / Accessibility 100 / Best Practices 100 / SEO 100 (LCP 0.5 s, CLS 0.007); Home mobile Performance 64–77 across runs (73–82 in quieter runs by the 8B agent), LCP 1.8–2.4 s, CLS 0; project pages and /projects ≥ 84 mobile / 100 desktop. The mobile Home target (≥ 75) is met in clean runs but not reliably; the remaining cost is hydrating the ~2,900-element Home plus Motion (~47 KB gz) loaded through the toast host, trophy room, Peek and badge drawer — lazy-loading those is the next step.
+- Playwright smoke suite (`npm run test:e2e`, backend + frontend running): 16/16 green twice in a row, including the axe scans (no serious/critical violations on Home, a project page, /projects, the 404 page and /admin/login) and keyboard checks.

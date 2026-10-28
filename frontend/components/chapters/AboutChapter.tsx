@@ -175,7 +175,8 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
                       )}
                     >
                       <dt className="hk-pixel mt-2 text-[0.7rem] leading-tight">{stat.label}</dt>
-                      <dd className="hk-display hk-condensed flex items-baseline text-5xl tracking-[-0.005em] whitespace-nowrap xl:text-6xl">
+                      {/* Below 360 px a two-column card is ~100 px wide: a step smaller so "3.91/4.00" fits. */}
+                      <dd className="hk-display hk-condensed flex items-baseline text-[2.75rem] tracking-[-0.005em] whitespace-nowrap min-[360px]:text-5xl xl:text-6xl">
                         {stat.prefix ? <span>{stat.prefix}</span> : null}
                         {/* Screen readers get the final value; the visible copy may count up. */}
                         <span className="sr-only">{stat.value}</span>
@@ -186,7 +187,7 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
                           {stat.value}
                         </span>
                         {stat.suffix ? (
-                          <span className="hk-mono ml-1 text-sm font-bold tracking-normal">
+                          <span className="hk-mono ml-1 text-xs font-bold tracking-normal min-[360px]:text-sm">
                             {stat.suffix}
                           </span>
                         ) : null}

@@ -45,3 +45,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# e2e admin session (Playwright storageState)
+/e2e/.auth/

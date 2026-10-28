@@ -73,7 +73,10 @@ class RevalidationService
         }
 
         try {
-            $response = Http::timeout(3)
+            // Runs after the admin response (defer), so waiting longer never slows a save. One retry
+            // covers a cold `next dev` route compile; a timeout only delays the revalidation.
+            $response = Http::timeout((int) config('portfolio.revalidate_timeout', 10))
+                ->retry(2, 500, throw: false)
                 ->acceptJson()
                 ->withHeaders(['x-revalidate-secret' => $secret])
                 ->post(config('portfolio.frontend_url').'/api/revalidate', ['tags' => $tags]);

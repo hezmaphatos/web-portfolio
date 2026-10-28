@@ -16,7 +16,7 @@ type Props = { className?: string; children: ReactNode };
  */
 export function AboutMotion({ className, children }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const { ready, lite } = useMotionGate();
+  const { ready, lite } = useMotionGate(root);
 
   useGSAP(
     () => {
@@ -33,10 +33,11 @@ export function AboutMotion({ className, children }: Props) {
             // aria "none": leave the paragraph alone for screen readers; the word <span>s are
             // only there so each word can get its own opacity.
             const split = SplitText.create(bio, { type: "words", tag: "span", aria: "none" });
-            // Words never drop below 0.22: the bio stays legible even before you scroll through it.
+            // Words never drop below 0.65: even before you scroll through it the bio keeps AA
+            // contrast (≥ 4.5:1 on the chapter background; 0.22 was 1.6:1).
             gsap.fromTo(
               split.words,
-              { opacity: 0.22 },
+              { opacity: 0.65 },
               {
                 opacity: 1,
                 ease: "none",

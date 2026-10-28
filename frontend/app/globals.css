@@ -5796,3 +5796,12 @@ html:not([data-lite]) .hk-badges:target {
 }
 
 /* end phase 7A: badges, sound, rewind */
+
+/* ── phase 8A: a11y */
+
+/* Paper (#F3EFE6) on volt (#3D5AFE) is 4.47:1, a hair under AA for small text (stickers, the
+   regular boss badge, stat cards, Journey strips): text on volt uses a lighter paper (4.8:1).
+   Hackker Mode keeps its own dark text on accent blocks (more specific rule above). */
+.bg-volt.text-paper {
+  color: #fbf9f4;
+}

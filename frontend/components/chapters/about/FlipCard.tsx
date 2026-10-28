@@ -76,7 +76,8 @@ export function FlipCard({ front, back, hint }: Props) {
         type="button"
         className="hk-flip-btn"
         aria-pressed={flipped}
-        aria-label="Show the pixel avatar"
+        // Stable toggle name that contains both visible tags ("Flip ▸" / "◂ Photo"), WCAG 2.5.3.
+        aria-label="Flip photo to the pixel avatar"
         onClick={toggle}
       >
         <span aria-hidden="true" className="hk-flip-tag hk-pixel">

@@ -1,8 +1,9 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cookies, draftMode } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 
+import { GameOver } from "@/components/game/gameover/GameOver";
 import { ProjectStage } from "@/components/project/ProjectStage";
 import { ADMIN_COOKIE } from "@/lib/admin/session";
 import { getHome, getProject, getProjectPreview, getProjects } from "@/lib/api";
@@ -38,9 +39,8 @@ export const instant = false;
  * tag. 'navigation' requires the whole route to be static output, which makes the first request
  * for an unlisted slug wait for the complete prerender instead — `notFound()` then happens before
  * any byte is sent (404), and a real new slug is stored as a static page like the others.
- * (Draft preview still works: Draft Mode bypasses the static output.) Limitation: the 404's
- * body is Next's error shell, filled in by JavaScript (no-JS visitors get an empty page; crawlers
- * get 404 + noindex). See docs/DECISIONS.md, phase 7B.
+ * (Draft preview still works: Draft Mode bypasses the static output.) The 404 body keeps the
+ * layout and a no-JS GAME OVER: see ProjectPage and docs/DECISIONS.md (phases 7B, 8B).
  */
 export const ensureStatic = "navigation";
 
@@ -154,10 +154,35 @@ function PreviewBanner({ project }: { project: ProjectDetail }) {
   );
 }
 
+/** Throws during render, inside the boundary below (see ProjectPage). */
+function LevelNotFound(): never {
+  notFound();
+}
+
 export default async function ProjectPage({ params }: Params) {
   const { slug } = await params;
   const [{ project, preview }, home] = await Promise.all([loadStage(slug), getHome()]);
-  if (!project) notFound();
+
+  // Unknown slug: `notFound()` is thrown inside a <Suspense> boundary instead of here. Thrown
+  // here it failed the whole HTML render and Next answered 404 with an empty error shell that only
+  // JavaScript fills. Caught by the boundary, the layout (HUD…) stays in the HTML, the status is
+  // still 404, and the fallback — GAME OVER in <noscript> — is what a visitor without JavaScript
+  // sees; with JavaScript the client renders this segment's not-found.tsx (the same GAME OVER).
+  // A found project never gets the boundary: its stage stays inline static HTML (a boundary
+  // around it would turn the stage into a streamed segment only JavaScript reveals).
+  if (!project) {
+    return (
+      <Suspense
+        fallback={
+          <noscript>
+            <GameOver variant="level" />
+          </noscript>
+        }
+      >
+        <LevelNotFound />
+      </Suspense>
+    );
+  }
 
   return (
     <>

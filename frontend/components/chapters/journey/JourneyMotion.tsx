@@ -23,7 +23,7 @@ type Props = { className?: string; hint: string | null; children: ReactNode };
  */
 export function JourneyMotion({ className, hint, children }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const { ready, lite } = useMotionGate();
+  const { ready, lite } = useMotionGate(root);
 
   useStageHint("journey", hint, root);
 

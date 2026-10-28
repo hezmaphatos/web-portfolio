@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
-import { useMotionGate } from "@/components/chapters/shared/motion";
+import { onFirstPointer, useMotionGate } from "@/components/chapters/shared/motion";
 import { useStageHint } from "@/components/game/useStageHint";
 import { Draggable, gsap, MEDIA, useGSAP } from "@/lib/gsap";
 
@@ -109,49 +109,53 @@ export function SkillTree({ hint, className, children }: Props) {
       const tree = root.current;
       if (!ready || lite || !tree) return;
       const mm = gsap.matchMedia();
-      mm.add(MEDIA, (context) => {
+      mm.add(MEDIA, (context, contextSafe) => {
         const { finePointer, reduce } = context.conditions ?? {};
         if (!finePointer || reduce) return; // touch scrolls the page; reduced motion: no toy
-        const nodes = Array.from(tree.querySelectorAll<HTMLElement>("[data-skill-card]"));
-        const drags = nodes.map((node) => {
-          const tilt = gsap.quickTo(node, "rotation", { duration: 0.25, ease: "power2.out" });
-          let springBack: gsap.core.Tween | null = null;
-          const [drag] = Draggable.create(node, {
-            type: "x,y",
-            // Only the "Used in" links stay plain clicks; the stretched title button drags (a
-            // press without movement is still a click: it pins the node).
-            clickableTest: (el: HTMLElement | SVGElement) => el.closest("a") !== null,
-            zIndexBoost: true,
-            cursor: "grab",
-            activeCursor: "grabbing",
-            onPress: () => {
-              springBack?.kill();
-            },
-            onDragStart: () => {
-              gsap.to(node, { scale: 1.04, duration: 0.15, ease: "power2.out" });
-            },
-            onDrag: () => {
-              tilt(gsap.utils.clamp(-9, 9, drag.deltaX * 0.9));
-            },
-            onRelease: () => {
-              // Spring (elastic overshoot) back to the slot in the tree.
-              springBack = gsap.to(node, {
-                x: 0,
-                y: 0,
-                rotation: 0,
-                scale: 1,
-                duration: 1.1,
-                ease: "elastic.out(1, 0.38)",
-                onUpdate: () => drag.update(),
-              });
-            },
+        // Created on the first hover, not at hydration (one style recalc per Draggable).
+        const setup = () => {
+          const nodes = Array.from(tree.querySelectorAll<HTMLElement>("[data-skill-card]"));
+          const drags = nodes.map((node) => {
+            const tilt = gsap.quickTo(node, "rotation", { duration: 0.25, ease: "power2.out" });
+            let springBack: gsap.core.Tween | null = null;
+            const [drag] = Draggable.create(node, {
+              type: "x,y",
+              // Only the "Used in" links stay plain clicks; the stretched title button drags (a
+              // press without movement is still a click: it pins the node).
+              clickableTest: (el: HTMLElement | SVGElement) => el.closest("a") !== null,
+              zIndexBoost: true,
+              cursor: "grab",
+              activeCursor: "grabbing",
+              onPress: () => {
+                springBack?.kill();
+              },
+              onDragStart: () => {
+                gsap.to(node, { scale: 1.04, duration: 0.15, ease: "power2.out" });
+              },
+              onDrag: () => {
+                tilt(gsap.utils.clamp(-9, 9, drag.deltaX * 0.9));
+              },
+              onRelease: () => {
+                // Spring (elastic overshoot) back to the slot in the tree.
+                springBack = gsap.to(node, {
+                  x: 0,
+                  y: 0,
+                  rotation: 0,
+                  scale: 1,
+                  duration: 1.1,
+                  ease: "elastic.out(1, 0.38)",
+                  onUpdate: () => drag.update(),
+                });
+              },
+            });
+            return drag;
           });
-          return drag;
-        });
-        return () => {
-          for (const drag of drags) drag.kill();
-          gsap.set(nodes, { clearProps: "transform,zIndex,cursor,touchAction,userSelect" });
+          return () => {
+            for (const drag of drags) drag.kill();
+            gsap.set(nodes, { clearProps: "transform,zIndex,cursor,touchAction,userSelect" });
+          };
         };
+        return onFirstPointer(tree, contextSafe ? (contextSafe(setup) as typeof setup) : setup);
       });
       return () => mm.revert();
     },

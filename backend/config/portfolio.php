@@ -10,6 +10,9 @@ return [
 
     'revalidate_secret' => env('REVALIDATE_SECRET'),
 
+    // Seconds the revalidation webhook may take (it runs after the response; one retry on failure).
+    'revalidate_timeout' => (int) env('REVALIDATE_TIMEOUT', 10),
+
     // The single admin account, seeded by AdminUserSeeder.
     'admin' => [
         'email' => env('ADMIN_EMAIL'),

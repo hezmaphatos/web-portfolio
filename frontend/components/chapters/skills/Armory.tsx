@@ -3,7 +3,7 @@
 import { RotateCcw, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { useMotionGate } from "@/components/chapters/shared/motion";
+import { onFirstPointer, useMotionGate } from "@/components/chapters/shared/motion";
 import {
   LOADOUT_SIZE,
   TRAINING_DUMMY_HP,
@@ -194,17 +194,20 @@ export function Armory({ skills }: Props) {
       mm.add(MEDIA, (context, safe) => {
         const { finePointer, reduce } = context.conditions ?? {};
         if (!finePointer) return; // touch: tap a card → bottom sheet / popover
-        return setupEquipDrag({
-          root: el,
-          reduce: Boolean(reduce),
-          safe: typed(safe),
-          onDrop: (skillId, fromSlot, toSlot) => {
-            setChooser(null);
-            const from = fromSlot ?? -1;
-            if (from === toSlot) return null;
-            return applied(equipSkill(ctx, toSlot, skillId));
-          },
-        });
+        // Created on the first hover, not at hydration (one style recalc per Draggable).
+        return onFirstPointer(el, () =>
+          setupEquipDrag({
+            root: el,
+            reduce: Boolean(reduce),
+            safe: typed(safe),
+            onDrop: (skillId, fromSlot, toSlot) => {
+              setChooser(null);
+              const from = fromSlot ?? -1;
+              if (from === toSlot) return null;
+              return applied(equipSkill(ctx, toSlot, skillId));
+            },
+          }),
+        );
       });
       return () => mm.revert();
     },

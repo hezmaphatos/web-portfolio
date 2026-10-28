@@ -1,4 +1,6 @@
-import { z } from "zod";
+// zod/mini (tree-shakable functional checks): the classic `zod` build put ~100 KB of mostly unused
+// code in every public page's bundle just for this one schema (phase 8B).
+import * as z from "zod/mini";
 
 import { SECTION_KEYS, type SectionKey } from "@/lib/types";
 
@@ -21,24 +23,17 @@ export const SAVE_MAX_AGE = 60 * 60 * 24 * 7;
 export const SAVE_MAX_BYTES = 2048;
 export const LOADOUT_SIZE = 4;
 
-const id = z.number().int().positive();
-const slug = z
-  .string()
-  .regex(/^[a-z0-9]+(?:[-:][a-z0-9]+)*$/)
-  .max(40);
+const id = z.int().check(z.positive());
+const slug = z.string().check(z.regex(/^[a-z0-9]+(?:[-:][a-z0-9]+)*$/), z.maxLength(40));
 
 const saveSchema = z.object({
   v: z.literal(SAVE_VERSION),
-  loadout: z.array(id).max(LOADOUT_SIZE),
-  defeated: z.array(id).max(500),
-  badges: z.array(slug).max(50),
-  hints: z.array(slug).max(50),
-  visited: z
-    .number()
-    .int()
-    .min(0)
-    .max(2 ** SECTION_KEYS.length - 1),
-  t: z.number().int().nonnegative(),
+  loadout: z.array(id).check(z.maxLength(LOADOUT_SIZE)),
+  defeated: z.array(id).check(z.maxLength(500)),
+  badges: z.array(slug).check(z.maxLength(50)),
+  hints: z.array(slug).check(z.maxLength(50)),
+  visited: z.int().check(z.minimum(0), z.maximum(2 ** SECTION_KEYS.length - 1)),
+  t: z.int().check(z.nonnegative()),
 });
 
 export type SaveFile = z.infer<typeof saveSchema>;

@@ -51,7 +51,8 @@ export function Hud({ nickname, soundDefault, sections, bossIds, onHome, path }:
     }));
 
   return (
-    <div data-hud className="hk-hud">
+    // <header>: the HUD is the site banner landmark (its status cells were outside any landmark).
+    <header data-hud className="hk-hud">
       <XpBar className="hk-xp hk-xp-line md:hidden" />
       <div className="hk-hud-row">
         <div className="hk-hud-status">
@@ -95,6 +96,6 @@ export function Hud({ nickname, soundDefault, sections, bossIds, onHome, path }:
           <HelpButton onHome={onHome} />
         </div>
       </div>
-    </div>
+    </header>
   );
 }

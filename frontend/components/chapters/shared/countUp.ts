@@ -27,13 +27,21 @@ export function setupCounters(root: Element): () => void {
     { rootMargin: "0px 0px -6% 0px" }, // start once the counter is clearly on screen
   );
 
-  root.querySelectorAll<HTMLElement>("[data-counter]").forEach((el) => {
-    const raw = el.dataset.counter ?? "";
-    const target = Number(raw);
-    if (raw === "" || !Number.isFinite(target)) return;
-    // Already on screen (or scrolled past): leave the final value alone, no flash back to 0.
-    if (el.getBoundingClientRect().top < window.innerHeight) return;
+  // All reads first, then all writes: measuring a counter after the previous one was rewritten
+  // forced a full layout per counter (one long task at hydration, phase 8B).
+  const counters = Array.from(root.querySelectorAll<HTMLElement>("[data-counter]")).flatMap(
+    (el) => {
+      const raw = el.dataset.counter ?? "";
+      const target = Number(raw);
+      if (raw === "" || !Number.isFinite(target)) return [];
+      const box = el.getBoundingClientRect();
+      // Already on screen (or scrolled past): leave the final value alone, no flash back to 0.
+      if (box.top < window.innerHeight) return [];
+      return [{ el, raw, target, width: box.width }];
+    },
+  );
 
+  for (const { el, raw, target, width } of counters) {
     const finalText = el.textContent ?? raw;
     const decimals = raw.includes(".") ? raw.split(".")[1].length : 0; // "3.91" counts 0.00 → 3.91
     const format = new Intl.NumberFormat("en-US", {
@@ -44,7 +52,6 @@ export function setupCounters(root: Element): () => void {
 
     // Lock the box to the final width: "0" is narrower than "1,000", and a counter that grows
     // would push its suffix sideways (a layout shift) on every frame.
-    const width = el.getBoundingClientRect().width;
     el.style.display = "inline-block";
     el.style.width = `${width}px`;
     el.textContent = format.format(0);
@@ -71,7 +78,7 @@ export function setupCounters(root: Element): () => void {
       el.style.display = "";
       el.style.width = "";
     });
-  });
+  }
 
   return () => {
     observer.disconnect();

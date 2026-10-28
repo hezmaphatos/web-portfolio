@@ -12,6 +12,16 @@ const SPRITES: Record<BossTier, string[]> = {
   final: ["#..#..#", "##.#.##", "#######", "#.#.#.#", "#######", ".#.#.#."],
 };
 
+/** Each sprite as one path of 1 × 1 squares (built once at module load). */
+const SPRITE_PATHS = Object.fromEntries(
+  Object.entries(SPRITES).map(([tier, rows]) => [
+    tier,
+    rows
+      .flatMap((row, y) => [...row].map((cell, x) => (cell === "#" ? `M${x} ${y}h1v1h-1z` : "")))
+      .join(""),
+  ]),
+) as Record<BossTier, string>;
+
 const TIER_TEXT: Record<BossTier, string> = {
   minion: "Minion",
   regular: "Boss",
@@ -35,13 +45,8 @@ export function TierIcon({ tier, className }: { tier: BossTier; className?: stri
       aria-hidden="true"
       focusable="false"
     >
-      {rows.flatMap((row, y) =>
-        [...row].map((cell, x) =>
-          cell === "#" ? (
-            <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />
-          ) : null,
-        ),
-      )}
+      {/* One path, not a <rect> per pixel (fewer DOM nodes: the icon repeats on every card). */}
+      <path d={SPRITE_PATHS[tier]} fill="currentColor" />
     </svg>
   );
 }

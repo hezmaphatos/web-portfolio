@@ -63,7 +63,7 @@ export function TrophyRoom({ awards, hint, className, children }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const layer = useRef<HTMLDivElement>(null);
   const resetTilt = useRef(new Map<HTMLElement, () => void>());
-  const { ready, lite } = useMotionGate();
+  const { ready, lite } = useMotionGate(root);
   const still = useStill();
   const mounted = useMounted();
   const [open, setOpen] = useState<OpenAward | null>(null);

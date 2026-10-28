@@ -13,6 +13,11 @@ type Props = {
 
 /** "Entered" = 40 % visible (the same rule as the stage hints, spec §5.3). */
 const VISIT_RATIO = 0.4;
+/**
+ * A chapter must stay entered this long to count as visited: rewinds and chapter-menu jumps scroll
+ * straight through the ones in between, which must not earn Explorer.
+ */
+const VISIT_DWELL_MS = 600;
 /** 1 % steps: a chapter taller than the viewport only reaches a small intersection ratio. */
 const THRESHOLDS = Array.from({ length: 101 }, (_, i) => i / 100);
 
@@ -20,9 +25,10 @@ const THRESHOLDS = Array.from({ length: 101 }, (_, i) => i / 100);
  * Follows the visitor through Home (renders nothing):
  * - activeChapter = the chapter crossing the middle of the viewport (HUD LV, Help button);
  *   "boot" while the splash is up;
- * - visit(key) the first time a chapter is ≥ 40 % visible — measured against the viewport for
- *   chapters taller than it — only after the save cookie is hydrated (an earlier write would
- *   overwrite the real save) and once the splash is gone.
+ * - visit(key) the first time a chapter stays ≥ 40 % visible for VISIT_DWELL_MS — measured
+ *   against the viewport for chapters taller than it — only after the save cookie is hydrated
+ *   (an earlier write would overwrite the real save) and once the splash is gone. The HUD LV
+ *   (activeChapter) still follows the scroll immediately.
  * IntersectionObserver instead of ScrollTrigger: it needs no refresh() when heights change.
  */
 export function ChapterTracker({ sections, hasBoot }: Props) {
@@ -59,22 +65,41 @@ export function ChapterTracker({ sections, hasBoot }: Props) {
     if (boot !== "done" || !hydrated || sections.length === 0) return;
     const { visit } = useGameStore.getState();
     if (hasBoot) visit("boot"); // the level starts at the boot screen, shown or skipped
+    const dwell = new Map<Element, ReturnType<typeof setTimeout>>();
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           const viewport = entry.rootBounds?.height ?? window.innerHeight;
           const base = Math.min(entry.boundingClientRect.height, viewport);
-          if (base <= 0 || entry.intersectionRect.height / base < VISIT_RATIO) continue;
+          const entered = base > 0 && entry.intersectionRect.height / base >= VISIT_RATIO;
+          const pending = dwell.get(entry.target);
+          if (!entered) {
+            // Left again before the dwell ran out (flew past): not a visit.
+            if (pending !== undefined) clearTimeout(pending);
+            dwell.delete(entry.target);
+            continue;
+          }
+          if (pending !== undefined) continue; // still entered, the dwell timer is running
           const match = sections.find((s) => s.el === entry.target);
           if (!match) continue;
-          visit(match.key);
-          observer.unobserve(entry.target); // once per chapter is enough
+          const target = entry.target;
+          dwell.set(
+            target,
+            setTimeout(() => {
+              dwell.delete(target);
+              visit(match.key);
+              observer.unobserve(target); // once per chapter is enough
+            }, VISIT_DWELL_MS),
+          );
         }
       },
       { threshold: THRESHOLDS },
     );
     sections.forEach((s) => observer.observe(s.el));
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      dwell.forEach((timer) => clearTimeout(timer));
+    };
   }, [boot, hydrated, sections, hasBoot]);
 
   return null;

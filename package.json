@@ -3,9 +3,9 @@
   "private": true,
   "description": "Monorepo: Laravel API (backend/) + Next.js site and admin (frontend/).",
   "scripts": {
-    "dev": "concurrently -k -n api,queue,web -c magenta,gray,cyan \"npm:dev:api\" \"npm:dev:queue\" \"npm:dev:web\"",
+    "dev": "concurrently -n api,queue,web -c magenta,gray,cyan \"npm:dev:api\" \"npm:dev:queue\" \"npm:dev:web\"",
     "dev:api": "node --env-file-if-exists=.env scripts/php.mjs backend artisan serve --host=127.0.0.1 --port=8100",
-    "dev:queue": "node --env-file-if-exists=.env scripts/php.mjs backend artisan queue:listen --tries=1",
+    "dev:queue": "node --env-file-if-exists=.env scripts/php.mjs backend artisan queue:listen --tries=1 --timeout=0",
     "dev:web": "npm --prefix frontend run dev",
     "php": "node --env-file-if-exists=.env scripts/php.mjs backend",
     "lint": "npm run php -- vendor/bin/pint --test && npm --prefix frontend run lint",

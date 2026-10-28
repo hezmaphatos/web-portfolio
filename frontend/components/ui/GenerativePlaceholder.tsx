@@ -14,6 +14,7 @@ type Props = {
 };
 
 const INK = "#111111";
+const round = (n: number) => Math.round(n * 100) / 100;
 const PAPER = "#F3EFE6";
 
 /** FNV-1a → small seeded PRNG (mulberry32). */
@@ -61,7 +62,15 @@ export function GenerativePlaceholder({
   const height = rows * size;
   const palette = [accent, INK, PAPER, accent, contrastOn(accent) === INK ? PAPER : INK];
 
-  const tiles: React.ReactNode[] = [];
+  // One <path> per colour instead of a <g> + shapes per tile: a 6 × 4 tile cover was ~100 SVG
+  // nodes, and the Home carries a dozen of them (style/layout cost on every recalc, phase 8B).
+  // Tiles never overlap, so painting every background first and every shape second keeps the
+  // look of the per-tile drawing.
+  const backgrounds = new Map<string, string>();
+  const shapes = new Map<string, string>();
+  const add = (paths: Map<string, string>, fill: string, d: string) =>
+    paths.set(fill, (paths.get(fill) ?? "") + d);
+
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const px = x * size;
@@ -70,32 +79,77 @@ export function GenerativePlaceholder({
       let fg = palette[Math.floor(random() * palette.length)];
       if (fg === bg) fg = bg === INK ? PAPER : INK;
       const kind = Math.floor(random() * 6);
-      const rot = Math.floor(random() * 4) * 90;
-      const key = `${x}-${y}`;
+      const turns = Math.floor(random() * 4); // quarter turns around the tile centre
       const c = size / 2;
-      let shape: React.ReactNode = null;
-      if (kind === 0) shape = <circle cx={c} cy={c} r={size * 0.38} fill={fg} />;
-      else if (kind === 1)
-        shape = <path d={`M0 0 H${size} A${size} ${size} 0 0 1 0 ${size} Z`} fill={fg} />;
-      else if (kind === 2) shape = <path d={`M0 0 L${size} 0 L0 ${size} Z`} fill={fg} />;
-      else if (kind === 3)
-        shape = (
-          <g fill={fg}>
-            {[0, 1, 2, 3].map((i) => (
-              <rect key={i} x={0} y={i * 25 + 6} width={size} height={12} />
-            ))}
-          </g>
+      /** Tile-local point → rotated, translated "x y". */
+      const at = (lx: number, ly: number) => {
+        const dx = lx - c;
+        const dy = ly - c;
+        const [rx, ry] = [
+          [dx, dy],
+          [-dy, dx],
+          [-dx, -dy],
+          [dy, -dx],
+        ][turns];
+        return `${round(px + c + rx)} ${round(py + c + ry)}`;
+      };
+      const polygon = (points: Array<[number, number]>) =>
+        `M${points.map(([lx, ly]) => at(lx, ly)).join("L")}Z`;
+
+      add(backgrounds, bg, `M${px} ${py}h${size}v${size}h-${size}Z`);
+      if (kind === 0) {
+        const r = round(size * 0.38);
+        add(
+          shapes,
+          fg,
+          `M${round(px + c - r)} ${py + c}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 -${2 * r} 0Z`,
         );
-      else if (kind === 4) shape = <rect x={22} y={22} width={56} height={56} fill={fg} />;
+      } else if (kind === 1) {
+        // Quarter disc: a rotation keeps the arc's sweep direction.
+        add(shapes, fg, `M${at(0, 0)}L${at(size, 0)}A${size} ${size} 0 0 1 ${at(0, size)}Z`);
+      } else if (kind === 2) {
+        add(
+          shapes,
+          fg,
+          polygon([
+            [0, 0],
+            [size, 0],
+            [0, size],
+          ]),
+        );
+      } else if (kind === 3) {
+        for (let i = 0; i < 4; i++) {
+          const top = i * 25 + 6;
+          add(
+            shapes,
+            fg,
+            polygon([
+              [0, top],
+              [size, top],
+              [size, top + 12],
+              [0, top + 12],
+            ]),
+          );
+        }
+      } else if (kind === 4) {
+        add(
+          shapes,
+          fg,
+          polygon([
+            [22, 22],
+            [78, 22],
+            [78, 78],
+            [22, 78],
+          ]),
+        );
+      }
       // kind 5: empty tile, keeps the pattern from getting busy.
-      tiles.push(
-        <g key={key} transform={`translate(${px} ${py}) rotate(${rot} ${c} ${c})`}>
-          <rect width={size} height={size} fill={bg} />
-          {shape}
-        </g>,
-      );
     }
   }
+
+  let grid = "";
+  for (let i = 0; i <= cols; i++) grid += `M${i * size} 0V${height}`;
+  for (let i = 0; i <= rows; i++) grid += `M0 ${i * size}H${width}`;
 
   return (
     <svg
@@ -107,16 +161,11 @@ export function GenerativePlaceholder({
       aria-hidden={label ? undefined : true}
       focusable="false"
     >
-      {tiles}
+      {[...backgrounds, ...shapes].map(([fill, d], i) => (
+        <path key={i} d={d} fill={fill} />
+      ))}
       {/* Grid lines: the hard ink rule that ties it to the rest of the site. */}
-      <g stroke={INK} strokeWidth={4}>
-        {Array.from({ length: cols + 1 }, (_, i) => (
-          <line key={`v${i}`} x1={i * size} y1={0} x2={i * size} y2={height} />
-        ))}
-        {Array.from({ length: rows + 1 }, (_, i) => (
-          <line key={`h${i}`} x1={0} y1={i * size} x2={width} y2={i * size} />
-        ))}
-      </g>
+      <path d={grid} stroke={INK} strokeWidth={4} fill="none" />
     </svg>
   );
 }

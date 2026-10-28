@@ -50,7 +50,7 @@ type Props = {
  */
 export function ShowcaseMotion({ accents, labelledBy, className, children }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const { ready, lite } = useMotionGate();
+  const { ready, lite } = useMotionGate(root);
   const count = accents.length;
 
   // Card → Project Stage: remember the cover's rect for the shared-element transition.
