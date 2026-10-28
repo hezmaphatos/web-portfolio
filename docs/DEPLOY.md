@@ -2,8 +2,8 @@
 
 Two apps on two hostnames (spec §13). Example names used below — replace them with yours:
 
-| App                                | Host                      | Where                                  |
-| ---------------------------------- | ------------------------- | -------------------------------------- |
+| App                                | Host                         | Where                                  |
+| ---------------------------------- | ---------------------------- | -------------------------------------- |
 | Frontend (Next.js site + `/admin`) | `https://yourdomain.dev`     | Vercel                                 |
 | Backend (Laravel API + uploads)    | `https://api.yourdomain.dev` | cPanel / Hostinger (PHP 8.3+, MySQL 8) |
 
@@ -14,6 +14,8 @@ How they talk to each other:
 - Uploaded images are served by Laravel at `https://api.yourdomain.dev/storage/...`; the frontend's image optimiser only accepts that host (derived from `API_URL`).
 
 Deploy the **backend first**: the frontend build prerenders every page from the API.
+
+**Two ways to host the backend:** a PHP host with a persistent disk (cPanel/Hostinger, sections 1–6), or free: a container + cloud MySQL + object storage (section 7 — Render + TiDB Cloud + Cloudflare R2). The frontend goes to Vercel either way.
 
 ## 1. Backend (cPanel / Hostinger)
 
@@ -166,3 +168,93 @@ The Playwright suite (`npm run test:e2e`) creates and deletes test projects, so 
 | Contact form / defeat / view requests fail in the browser | CORS: `FRONTEND_URL` must be exactly the site origin (scheme + host, no trailing slash); clear the config cache after changing `.env`.                |
 | Upload fails for large images/videos                      | PHP `upload_max_filesize` / `post_max_size` / `memory_limit` (see the requirements).                                                                  |
 | 500 after changing `.env`                                 | Run `php artisan config:clear` (then `config:cache` again).                                                                                           |
+
+## 7. Free hosting: Render + TiDB Cloud + Cloudflare R2
+
+The backend runs from `backend/Dockerfile` (FrankenPHP, PHP 8.4). A free container has an
+**ephemeral disk** (files vanish on every restart/redeploy), so uploads go to object storage and the
+queue runs inline. The image already sets `APP_ENV=production`, `LOG_CHANNEL=stderr`,
+`QUEUE_CONNECTION=sync`, `MEDIA_DISK=s3`, `MEDIA_ORIGINALS_DISK=s3-private` and `TRUSTED_PROXIES=*`;
+on every start it runs `config:cache`, `route:cache`, `migrate --force` and `db:seed --force`
+(the seeders only add what is missing, so this is safe).
+
+| Piece             | Service (free tier)     | Notes                                                                      |
+| ----------------- | ----------------------- | -------------------------------------------------------------------------- |
+| Frontend          | Vercel Hobby            | Section 2, plus `MEDIA_URL`.                                               |
+| Backend container | Render Free web service | Sleeps after 15 min without requests; the first request then takes ~1 min. |
+| Database (MySQL)  | TiDB Cloud Starter      | MySQL-compatible, TLS required, port 4000.                                 |
+| Uploads           | Cloudflare R2           | 10 GB free; Cloudflare may ask for a card to activate R2.                  |
+
+Free tiers change; check each provider's pricing page before relying on these limits. The repository
+must be on GitHub (private is fine) for Render and Vercel to deploy it.
+
+### 7.1 Cloudflare R2 (uploads)
+
+1. Cloudflare dashboard → **R2** → create two buckets: `portfolio-media` and `portfolio-originals`.
+2. `portfolio-media` → _Settings → Public access_ → enable the **r2.dev** URL (or connect a custom
+   domain if your domain is on Cloudflare). Copy that public URL, e.g. `https://pub-xxxx.r2.dev`.
+   Leave `portfolio-originals` **private**: image originals still carry EXIF (GPS included).
+3. R2 → **Manage API tokens** → create a token with _Object Read & Write_ on those two buckets.
+   Note the **Access Key ID**, **Secret Access Key** and the S3 endpoint
+   `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+
+### 7.2 TiDB Cloud Starter (database)
+
+1. Create a **Starter** cluster in the region nearest your Render region (e.g. AWS Singapore).
+2. _Connect_ → generate a password; note host (`gateway01.<region>.prod.aws.tidbcloud.com`),
+   port `4000` and user (`<prefix>.root`).
+3. _SQL Editor_: `CREATE DATABASE portfolio;`
+
+### 7.3 Render (backend)
+
+1. Generate an app key locally: `php artisan key:generate --show` (in `backend/`).
+2. Render → **New → Web Service** → connect the GitHub repo. Root Directory `backend`, Language
+   **Docker**, Instance type **Free**, region close to the database. Health Check Path: `/up`.
+3. Environment variables:
+   ```ini
+   APP_KEY=base64:...                       # from step 1
+   APP_URL=https://<service>.onrender.com
+   FRONTEND_URL=https://<project>.vercel.app  # the site's exact origin, no trailing slash
+   DB_CONNECTION=mysql
+   DB_HOST=gateway01.<region>.prod.aws.tidbcloud.com
+   DB_PORT=4000
+   DB_DATABASE=portfolio
+   DB_USERNAME=<prefix>.root
+   DB_PASSWORD=...
+   MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
+   CACHE_STORE=database
+   SESSION_DRIVER=array
+   AWS_ACCESS_KEY_ID=...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_DEFAULT_REGION=auto
+   AWS_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+   AWS_BUCKET=portfolio-media
+   AWS_PRIVATE_BUCKET=portfolio-originals
+   AWS_URL=https://pub-xxxx.r2.dev
+   ADMIN_EMAIL=you@example.com
+   ADMIN_PASSWORD=<a strong password>
+   REVALIDATE_SECRET=<long random string, same on Vercel>
+   MAIL_MAILER=log
+   ```
+4. Deploy, then open `https://<service>.onrender.com/api/v1/public/home` — JSON means the database
+   is migrated and seeded.
+
+### 7.4 Vercel (frontend)
+
+Section 2 with `API_URL` / `NEXT_PUBLIC_API_URL` = `https://<service>.onrender.com/api/v1`, plus:
+
+```ini
+MEDIA_URL=https://pub-xxxx.r2.dev   # same as the backend's AWS_URL; lets next/image load uploads
+```
+
+Open the backend URL first so it is awake before the Vercel build (the build waits for the API
+anyway). If the Vercel URL differs from the `FRONTEND_URL` you guessed, fix it on Render
+(saving env vars redeploys).
+
+### 7.5 Living with the sleep
+
+Visitors read pages from Vercel's cache, so a sleeping backend is invisible to them. It is felt
+only by the admin login, the contact form, the boss-defeat/view counters and the first
+revalidation after an edit (~1 min for the first request). A free uptime monitor (e.g. UptimeRobot
+or cron-job.org) calling `https://<service>.onrender.com/up` every 10–14 minutes keeps it awake;
+one always-on service fits Render's 750 free instance hours a month.

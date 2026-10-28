@@ -30,12 +30,6 @@ use Throwable;
  */
 class MediaService
 {
-    /** Served files (WebP renditions, GIF/PDF/video uploads). */
-    public const DISK = 'public';
-
-    /** Untouched image uploads (still carrying EXIF): private, never given a URL. */
-    public const ORIGINALS_DISK = 'local';
-
     /** site_settings column => used_in field. */
     private const SITE_REFS = [
         'avatar_media_id' => 'avatar',
@@ -377,7 +371,7 @@ class MediaService
         $base = 'media/'.now()->format('Y/m').'/'.Str::uuid();
 
         $row = [
-            'disk' => self::DISK,
+            'disk' => $this->disk(),
             'path' => "{$base}.{$extension}",
             'original_path' => null,
             'thumb_path' => null,
@@ -391,7 +385,7 @@ class MediaService
         ];
 
         if (Media::kindOf($mime) !== 'image') {
-            $this->write(self::DISK, $row['path'], $file, $written);
+            $this->write($this->disk(), $row['path'], $file, $written);
 
             return $row;
         }
@@ -404,7 +398,7 @@ class MediaService
             $row['width'] = $image->width();
             $row['height'] = $image->height();
             $previews = $this->previews($image, $config);
-            $this->write(self::DISK, $row['path'], $file, $written);
+            $this->write($this->disk(), $row['path'], $file, $written);
         } else {
             // Re-encoding through GD drops every metadata block, EXIF included.
             $served = (string) $image->scaleDown(width: (int) $config['max_width'])
@@ -418,12 +412,12 @@ class MediaService
             $row['mime'] = 'image/webp';
             $row['size'] = strlen($served);
 
-            $this->write(self::ORIGINALS_DISK, $row['original_path'], $file, $written);
-            $this->write(self::DISK, $row['path'], $served, $written);
+            $this->write($this->originalsDisk(), $row['original_path'], $file, $written);
+            $this->write($this->disk(), $row['path'], $served, $written);
         }
 
         $row['thumb_path'] = "{$base}-thumb.webp";
-        $this->write(self::DISK, $row['thumb_path'], $previews['thumb'], $written);
+        $this->write($this->disk(), $row['thumb_path'], $previews['thumb'], $written);
 
         return array_merge($row, [
             'blur_data_url' => $previews['blur_data_url'],
@@ -449,6 +443,18 @@ class MediaService
         $color = '#'.substr($image->resize(1, 1)->pickColor(0, 0)->toHex(), 0, 6);
 
         return ['thumb' => $thumb, 'blur_data_url' => $blur, 'dominant_color' => $color];
+    }
+
+    /** Served files (WebP renditions, GIF/PDF/video uploads). */
+    private function disk(): string
+    {
+        return (string) config('portfolio.media.disk', 'public');
+    }
+
+    /** Untouched image uploads (still carrying EXIF): private, never given a URL. */
+    private function originalsDisk(): string
+    {
+        return (string) config('portfolio.media.originals_disk', 'local');
     }
 
     private function images(): ImageManager
@@ -481,7 +487,7 @@ class MediaService
         return array_values(array_filter([
             [$media['disk'], $media['path']],
             [$media['disk'], $media['thumb_path']],
-            [self::ORIGINALS_DISK, $media['original_path']],
+            [$this->originalsDisk(), $media['original_path']],
         ], fn (array $file) => ! empty($file[1])));
     }
 

@@ -56,6 +56,30 @@ class MediaTest extends TestCase
         $this->deleteJson(self::URL.'/1')->assertUnauthorized();
     }
 
+    public function test_the_media_disks_come_from_config_for_object_storage_in_production(): void
+    {
+        config(['portfolio.media.disk' => 's3', 'portfolio.media.originals_disk' => 's3-private']);
+        $served = Storage::fake('s3');
+        $originals = Storage::fake('s3-private');
+        $this->actingAsAdmin();
+
+        $data = $this->upload([UploadedFile::fake()->image('photo.jpg', 800, 600)])
+            ->assertCreated()
+            ->json('data.0');
+
+        $row = Media::query()->findOrFail($data['id'])->toArray();
+        $this->assertSame('s3', $row['disk']);
+        $served->assertExists([$row['path'], $row['thumb_path']]);
+        $originals->assertExists($row['original_path']);
+        $this->assertSame($served->url($row['path']), $data['url']);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('local')->allFiles());
+
+        $this->deleteJson(self::URL.'/'.$data['id'])->assertOk();
+        $served->assertMissing([$row['path'], $row['thumb_path']]);
+        $originals->assertMissing($row['original_path']);
+    }
+
     public function test_a_jpeg_becomes_a_webp_with_thumb_blur_and_colour_and_the_original_stays_private(): void
     {
         $this->actingAsAdmin();

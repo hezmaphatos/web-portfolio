@@ -21,6 +21,10 @@ return [
 
     // Media library limits (docs/API.md → Media). Sizes in kilobytes, widths in pixels.
     'media' => [
+        // Served files go to `disk` (public URLs); untouched image originals (EXIF intact) go to
+        // `originals_disk`, which must never be public. Production: `s3` + `s3-private` (docs/DEPLOY.md).
+        'disk' => env('MEDIA_DISK', 'public'),
+        'originals_disk' => env('MEDIA_ORIGINALS_DISK', 'local'),
         'image_max_kb' => 8192,
         'pdf_max_kb' => 10240,
         'video_max_kb' => 30720,
