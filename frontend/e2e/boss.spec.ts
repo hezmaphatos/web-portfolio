@@ -74,7 +74,7 @@ test("defeating a boss unlocks its tech and links, and they stay unlocked after 
     await expect(lockedLinks).toHaveCount(0);
     await expect(liveLink).toBeVisible();
     await expect(repoLink).toBeVisible();
-    const save = (await context.cookies()).find((cookie) => cookie.name === "hackker_save");
+    const save = (await context.cookies()).find((cookie) => cookie.name === "p1_save");
     expect(save, "the defeat is written to the save cookie").toBeTruthy();
     const parsed = JSON.parse(decodeURIComponent(save!.value)) as { defeated: number[] };
     expect(parsed.defeated).toContain(id);

@@ -22,7 +22,6 @@ function personJsonLd({ site, experiences }: HomePayload) {
     "@context": "https://schema.org",
     "@type": "Person",
     name: site.full_name,
-    alternateName: site.nickname,
     url: `${SITE}/`,
     jobTitle: site.headline ?? undefined,
     description: site.short_bio ?? undefined,

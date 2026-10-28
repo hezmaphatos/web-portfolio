@@ -4,14 +4,14 @@ Two apps on two hostnames (spec §13). Example names used below — replace them
 
 | App                                | Host                      | Where                                  |
 | ---------------------------------- | ------------------------- | -------------------------------------- |
-| Frontend (Next.js site + `/admin`) | `https://hackker.dev`     | Vercel                                 |
-| Backend (Laravel API + uploads)    | `https://api.hackker.dev` | cPanel / Hostinger (PHP 8.3+, MySQL 8) |
+| Frontend (Next.js site + `/admin`) | `https://yourdomain.dev`     | Vercel                                 |
+| Backend (Laravel API + uploads)    | `https://api.yourdomain.dev` | cPanel / Hostinger (PHP 8.3+, MySQL 8) |
 
 How they talk to each other:
 
 - The frontend's server fetches the public API (`API_URL`) and the browser posts three public endpoints directly (`NEXT_PUBLIC_API_URL`: project view, boss defeat, contact) — so the backend's CORS must allow the frontend origin.
-- After every admin edit the backend calls `POST https://hackker.dev/api/revalidate` with `REVALIDATE_SECRET` — so the backend must know the frontend URL and both must share the secret.
-- Uploaded images are served by Laravel at `https://api.hackker.dev/storage/...`; the frontend's image optimiser only accepts that host (derived from `API_URL`).
+- After every admin edit the backend calls `POST https://yourdomain.dev/api/revalidate` with `REVALIDATE_SECRET` — so the backend must know the frontend URL and both must share the secret.
+- Uploaded images are served by Laravel at `https://api.yourdomain.dev/storage/...`; the frontend's image optimiser only accepts that host (derived from `API_URL`).
 
 Deploy the **backend first**: the frontend build prerenders every page from the API.
 
@@ -30,19 +30,19 @@ Deploy the **backend first**: the frontend build prerenders every page from the 
 
 ### First deploy
 
-1. Upload the `backend/` folder to e.g. `~/api.hackker.dev/` (git clone over SSH, or ZIP upload). Point the subdomain's **document root to `backend/public`** (cPanel → _Domains_ → `api.hackker.dev` → Document Root).
+1. Upload the `backend/` folder to e.g. `~/api.yourdomain.dev/` (git clone over SSH, or ZIP upload). Point the subdomain's **document root to `backend/public`** (cPanel → _Domains_ → `api.yourdomain.dev` → Document Root).
 2. Install dependencies:
    ```sh
-   cd ~/api.hackker.dev
+   cd ~/api.yourdomain.dev
    composer install --no-dev --optimize-autoloader
    ```
 3. Create `.env` from `.env.example` and set at least:
    ```ini
-   APP_NAME="Hackker API"
+   APP_NAME="Portfolio API"
    APP_ENV=production
    APP_DEBUG=false
-   APP_URL=https://api.hackker.dev
-   FRONTEND_URL=https://hackker.dev
+   APP_URL=https://api.yourdomain.dev
+   FRONTEND_URL=https://yourdomain.dev
 
    DB_CONNECTION=mysql
    DB_HOST=localhost
@@ -74,7 +74,7 @@ Deploy the **backend first**: the frontend build prerenders every page from the 
    MAIL_SCHEME=smtps
    MAIL_USERNAME=...
    MAIL_PASSWORD=...
-   MAIL_FROM_ADDRESS=no-reply@hackker.dev
+   MAIL_FROM_ADDRESS=no-reply@yourdomain.dev
    ```
    Generate a secret with `php -r "echo bin2hex(random_bytes(32));"`.
 4. Initialise:
@@ -96,7 +96,7 @@ The queue is only used for the contact notification e-mail, and only when a real
 
 - **Cron (recommended):** cPanel → _Cron Jobs_, every minute:
   ```
-  * * * * * cd ~/api.hackker.dev && php artisan queue:work --stop-when-empty --max-time=55 >/dev/null 2>&1
+  * * * * * cd ~/api.yourdomain.dev && php artisan queue:work --stop-when-empty --max-time=55 >/dev/null 2>&1
   ```
 - **No cron:** set `QUEUE_CONNECTION=sync` (the mail is sent during the request; a slow SMTP server then slows the contact form).
 
@@ -109,8 +109,8 @@ Run `composer install --no-dev --optimize-autoloader` locally (PHP 8.3+), ZIP `b
 ### Check
 
 ```sh
-curl https://api.hackker.dev/api/v1/public/home     # 200 + the CV data
-curl -I https://api.hackker.dev/up                  # 200 (Laravel health route)
+curl https://api.yourdomain.dev/api/v1/public/home     # 200 + the CV data
+curl -I https://api.yourdomain.dev/up                  # 200 (Laravel health route)
 ```
 
 ## 2. Frontend (Vercel)
@@ -118,29 +118,29 @@ curl -I https://api.hackker.dev/up                  # 200 (Laravel health route)
 1. Import the repository in Vercel and set **Root Directory = `frontend`** (framework preset: Next.js; build command `next build`, Node 20.9+).
 2. Environment variables (Production, and Preview if you use preview deploys):
    ```ini
-   NEXT_PUBLIC_SITE_URL=https://hackker.dev
-   API_URL=https://api.hackker.dev/api/v1
-   NEXT_PUBLIC_API_URL=https://api.hackker.dev/api/v1
+   NEXT_PUBLIC_SITE_URL=https://yourdomain.dev
+   API_URL=https://api.yourdomain.dev/api/v1
+   NEXT_PUBLIC_API_URL=https://api.yourdomain.dev/api/v1
    REVALIDATE_SECRET=<exactly the backend's value>
    ```
    `next.config.ts` derives the image host from `API_URL` (`/storage/**` only) and turns the local-IP image exception off automatically for a public host.
 3. Deploy. The build fetches the API (every published project is prerendered), so the backend must be reachable from Vercel at build time.
-4. Add the domain `hackker.dev` in Vercel (_Settings → Domains_) and follow its DNS instructions.
+4. Add the domain `yourdomain.dev` in Vercel (_Settings → Domains_) and follow its DNS instructions.
 
 ## 3. DNS
 
-- `hackker.dev` → Vercel (A/ALIAS or CNAME as Vercel shows).
-- `api.hackker.dev` → your cPanel/Hostinger server (A record to the server IP, or the subdomain created in cPanel).
+- `yourdomain.dev` → Vercel (A/ALIAS or CNAME as Vercel shows).
+- `api.yourdomain.dev` → your cPanel/Hostinger server (A record to the server IP, or the subdomain created in cPanel).
 - HTTPS on both (Vercel does it automatically; cPanel: _SSL/TLS Status_ → AutoSSL / Let's Encrypt).
 
 ## 4. After the first deploy
 
-- [ ] Open `https://hackker.dev/admin`, sign in, and **change the password** (Account).
+- [ ] Open `https://yourdomain.dev/admin`, sign in, and **change the password** (Account).
 - [ ] Edit something small in the admin (e.g. the tagline) → reload the site → the change shows (revalidation works). If not: check `FRONTEND_URL` and `REVALIDATE_SECRET` on both sides and `storage/logs/laravel.log` for "Revalidation failed".
 - [ ] Upload an image in the Media Library → it shows in the admin and, once attached to a project, on the site (storage link + image host OK).
 - [ ] Send a test message from the contact form → it appears in Admin → Messages (CORS OK).
 - [ ] Defeat a boss on a project page → the tech chips unlock (the defeat POST must not show a CORS error in the browser console).
-- [ ] Check `https://hackker.dev/sitemap.xml`, `/robots.txt`, and an unknown URL (GAME OVER with a 404 status).
+- [ ] Check `https://yourdomain.dev/sitemap.xml`, `/robots.txt`, and an unknown URL (GAME OVER with a 404 status).
 - [ ] Verify the LinkedIn URL in Profile & Site (the seed guessed it from the CV).
 
 The Playwright suite (`npm run test:e2e`) creates and deletes test projects, so run it against a staging copy, not production.

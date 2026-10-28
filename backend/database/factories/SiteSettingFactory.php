@@ -16,7 +16,7 @@ class SiteSettingFactory extends Factory
     {
         return [
             'full_name' => 'Yehezkiel Natanael',
-            'nickname' => 'Hackker',
+            'nickname' => 'Hezki',
             'headline' => 'Backend-focused developer',
             'roles' => ['Backend Developer'],
             'tagline' => 'Tagline',

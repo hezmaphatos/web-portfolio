@@ -15,7 +15,7 @@ import { SECTION_KEYS, type SectionKey } from "@/lib/types";
  * Not a security mechanism: visitors may edit it; it only unlocks cosmetic rewards.
  */
 
-export const SAVE_COOKIE = "hackker_save";
+export const SAVE_COOKIE = "p1_save";
 export const SAVE_VERSION = 1;
 /** 7 days, renewed on every write (sliding expiry). */
 export const SAVE_MAX_AGE = 60 * 60 * 24 * 7;

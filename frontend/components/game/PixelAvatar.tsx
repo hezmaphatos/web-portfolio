@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 /**
- * Hackker, the pixel avatar: generated SVG pixel art (no image files), two walk frames.
+ * The player's pixel avatar: generated SVG pixel art (no image files), two walk frames.
  * Each frame is a <g data-frame="0|1">; animations swap frames by toggling their opacity
  * (frame 1 starts hidden), so walking costs no layout and no React renders.
  * Decorative only: always aria-hidden.

@@ -1,5 +1,5 @@
 /**
- * Konami code matcher (spec §5 badge "Konami" → Hackker Mode). Pure TypeScript, no DOM: the
+ * Konami code matcher (spec §5 badge "Konami" → Terminal Mode). Pure TypeScript, no DOM: the
  * listener in components/game/konami/ turns key presses / touch gestures into tokens and feeds
  * them here.
  *

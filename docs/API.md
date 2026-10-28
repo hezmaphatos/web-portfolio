@@ -51,7 +51,7 @@ One payload for the whole Home page. Only visible/published content, each list o
 {
   "data": {
     "site": {
-      "full_name": "Yehezkiel Natanael", "nickname": "Hackker", "headline": "…",
+      "full_name": "Yehezkiel Natanael", "nickname": "Hezki", "headline": "…",
       "roles": ["Backend Developer", "…"], "tagline": "…", "short_bio": "…", "long_bio": "markdown…",
       "location": "Tangerang Selatan, Indonesia", "email": "…",
       "phone": null,                                  // only when show_phone = true

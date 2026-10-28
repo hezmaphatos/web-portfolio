@@ -111,17 +111,15 @@ describe("visited bitmask", () => {
 describe("cookie strings", () => {
   it("builds the documented attributes", () => {
     expect(buildSaveCookie("abc", { secure: false })).toBe(
-      "hackker_save=abc; Max-Age=604800; Path=/; SameSite=Lax",
+      "p1_save=abc; Max-Age=604800; Path=/; SameSite=Lax",
     );
     expect(buildSaveCookie("abc", { secure: true })).toMatch(/; Secure$/);
-    expect(buildClearCookie({ secure: false })).toBe(
-      "hackker_save=; Max-Age=0; Path=/; SameSite=Lax",
-    );
+    expect(buildClearCookie({ secure: false })).toBe("p1_save=; Max-Age=0; Path=/; SameSite=Lax");
   });
 
   it("reads one cookie out of document.cookie", () => {
-    expect(readCookieValue("a=1; hackker_save=xyz; b=2")).toBe("xyz");
-    expect(readCookieValue("hackker_save_old=1")).toBeNull();
+    expect(readCookieValue("a=1; p1_save=xyz; b=2")).toBe("xyz");
+    expect(readCookieValue("p1_save_old=1")).toBeNull();
     expect(readCookieValue("")).toBeNull();
   });
 });

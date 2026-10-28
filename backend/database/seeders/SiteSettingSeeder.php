@@ -19,7 +19,7 @@ class SiteSettingSeeder extends Seeder
         $row = [
             'id' => SiteSetting::ID,
             'full_name' => 'Yehezkiel Natanael',
-            'nickname' => 'Hackker',
+            'nickname' => 'Hezki',
             'headline' => 'Backend-focused developer',
             'roles' => $this->json(['Backend Developer', 'Laravel Engineer', 'Mobile Explorer', 'Team Lead']),
             'tagline' => 'Building database-driven systems, and now learning to make the front end move.',

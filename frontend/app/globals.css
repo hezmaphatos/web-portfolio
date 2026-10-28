@@ -4937,9 +4937,9 @@ html[data-lite="true"] .hk-shot[data-tall] .hk-shot-inner {
 
 /* end phase 6C: stage, deck, modal */
 
-/* ── phase 7B: hackker mode + 404 ─────────────────────────────────────
- * Hackker Mode (Konami code, components/game/konami/*): a terminal theme on
- * html[data-theme="hackker"], applied before the first paint by the pre-paint head script.
+/* ── phase 7B: terminal mode + 404 ─────────────────────────────────────
+ * Terminal Mode (Konami code, components/game/konami/*): a terminal theme on
+ * html[data-theme="terminal"], applied before the first paint by the pre-paint head script.
  * Every component is re-skinned through the site tokens only. The paper theme has two surface
  * tones — paper (light, ink text) and ink (dark, paper text) — while a terminal has one dark
  * tone, so each kind of surface re-maps --paper / --ink for its own subtree:
@@ -4954,7 +4954,7 @@ html[data-lite="true"] .hk-shot[data-tall] .hk-shot-inner {
  * /admin never gets the attribute (pre-paint script + applyTheme skip it).
  */
 
-html[data-theme="hackker"] {
+html[data-theme="terminal"] {
   --hk-bg: #0b100c;
   --hk-bg-2: #111a13;
   --hk-deep: #040705;
@@ -4973,12 +4973,12 @@ html[data-theme="hackker"] {
 }
 
 /* Mono everywhere: body copy in JetBrains Mono, display type too (heavier, a touch tighter). */
-html[data-theme="hackker"] body {
+html[data-theme="terminal"] body {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
   font-weight: 400;
 }
 
-html[data-theme="hackker"] .hk-display {
+html[data-theme="terminal"] .hk-display {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
   font-weight: 800;
   font-variation-settings: normal;
@@ -4989,24 +4989,24 @@ html[data-theme="hackker"] .hk-display {
 /* Mono glyphs are ~30 % wider than condensed Bricolage: headings sized to fit a line (the hero
    name, stat values) would overflow. font-size-adjust shrinks the glyphs to the same width
    relative to each heading's own size (JetBrains Mono x-height 0.55 → 0.43 ≈ ×0.78). */
-html[data-theme="hackker"] .hk-condensed {
+html[data-theme="terminal"] .hk-condensed {
   font-size-adjust: 0.43;
 }
 
 /* The few places that name Bricolage directly (menu titles, damage numbers, toast copy). */
-html[data-theme="hackker"] :is(.hk-menu-title, .hk-dmg-amount, .hk-toast-desc) {
+html[data-theme="terminal"] :is(.hk-menu-title, .hk-dmg-amount, .hk-toast-desc) {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
   font-variation-settings: normal;
   letter-spacing: -0.03em;
 }
 
-html[data-theme="hackker"] ::selection {
+html[data-theme="terminal"] ::selection {
   background: var(--lime);
   color: var(--hk-deep);
 }
 
 /* default surfaces: re-asserted so they stay green-on-black inside ink surfaces too */
-html[data-theme="hackker"]
+html[data-theme="terminal"]
   :is(
     .hk-panel,
     .hk-panel-flat,
@@ -5033,7 +5033,7 @@ html[data-theme="hackker"]
 }
 
 /* ink surfaces: stay dark, their "paper" text turns green */
-html[data-theme="hackker"]
+html[data-theme="terminal"]
   :is(
     .bg-ink,
     .hk-btn-ink,
@@ -5056,12 +5056,12 @@ html[data-theme="hackker"]
   --ink-2: var(--hk-fg-2);
 }
 
-html[data-overlay="menu"][data-theme="hackker"] {
+html[data-overlay="menu"][data-theme="terminal"] {
   background: var(--hk-deep);
 }
 
 /* accent surfaces: bright block, dark text */
-html[data-theme="hackker"]
+html[data-theme="terminal"]
   :is(
     .bg-hot,
     .bg-lime,
@@ -5107,43 +5107,43 @@ html[data-theme="hackker"]
 }
 
 /* …except what sits on them again as a dark chip */
-html[data-theme="hackker"] .hk-auto[aria-pressed="true"] .hk-auto-state {
+html[data-theme="terminal"] .hk-auto[aria-pressed="true"] .hk-auto-state {
   --ink: var(--hk-deep);
   --paper: var(--hk-fg);
 }
 
 /* small ink labels: reverse video (green block, dark text), wherever they are */
-html[data-theme="hackker"] .bg-ink:is(.hk-pixel, .hk-mono) {
+html[data-theme="terminal"] .bg-ink:is(.hk-pixel, .hk-mono) {
   --ink: var(--hk-fg);
   --paper: var(--hk-bg);
 }
 
 /* Colour fields that only make sense on paper become terminal panes. */
-html[data-theme="hackker"] [class*="[--chapter-bg:var(--lime)]"] {
+html[data-theme="terminal"] [class*="[--chapter-bg:var(--lime)]"] {
   --chapter-bg: var(--hk-bg-2);
 }
 
 /* Project accents (admin colours) would break the monochrome: one terminal accent instead.
    !important: the stage sets them inline (style attribute). */
-html[data-theme="hackker"] :is([data-stage], .hk-lightbox) {
+html[data-theme="terminal"] :is([data-stage], .hk-lightbox) {
   --accent: var(--lime) !important;
 }
 
-html[data-theme="hackker"] [data-stage-hero] {
+html[data-theme="terminal"] [data-stage-hero] {
   --chapter-bg: var(--hk-bg-2) !important;
   --chapter-fg: var(--hk-fg) !important;
 }
 
 /* Scene A tweens this layer to each project's accent (inline style): keep the pane dark. */
-html[data-theme="hackker"] [data-showcase-bg] {
+html[data-theme="terminal"] [data-showcase-bg] {
   background-color: var(--hk-deep) !important;
 }
 
-html[data-theme="hackker"] [style*="--card-accent"] {
+html[data-theme="terminal"] [style*="--card-accent"] {
   --card-accent: var(--hk-fg-2) !important;
 }
 
-html[data-theme="hackker"] [style*="--peek-accent"] {
+html[data-theme="terminal"] [style*="--peek-accent"] {
   --peek-accent: var(--lime) !important;
 }
 
@@ -5152,7 +5152,7 @@ html[data-theme="hackker"] [style*="--peek-accent"] {
   display: none;
 }
 
-html[data-theme="hackker"] .hk-scanlines {
+html[data-theme="terminal"] .hk-scanlines {
   display: block;
   position: fixed;
   inset: 0;
@@ -5165,7 +5165,7 @@ html[data-theme="hackker"] .hk-scanlines {
 }
 
 /* The switch flash: a CRT band snaps open, flickers and fades (600 ms). Only opacity /
-   clip-path / transform; never mounted in Lite / reduced motion (konami/hackerMode.ts). */
+   clip-path / transform; never mounted in Lite / reduced motion (konami/terminalMode.ts). */
 .hk-crt-flash {
   position: fixed;
   inset: 0;
@@ -5227,12 +5227,12 @@ html[data-theme="hackker"] .hk-scanlines {
   }
 }
 
-/* "Exit Hackker Mode" in the HUD menu: only in Hackker Mode. */
-.hk-exit-hackker {
+/* "Exit Terminal Mode" in the HUD menu: only in Terminal Mode. */
+.hk-exit-terminal {
   display: none;
 }
 
-html[data-theme="hackker"] .hk-exit-hackker {
+html[data-theme="terminal"] .hk-exit-terminal {
   display: inline-flex;
 }
 
@@ -5409,7 +5409,7 @@ html[data-theme="hackker"] .hk-exit-hackker {
   rotate: 6deg;
 }
 
-html[data-theme="hackker"] .hk-go-ko-tag {
+html[data-theme="terminal"] .hk-go-ko-tag {
   --ink: var(--hk-deep);
 }
 
@@ -5424,7 +5424,7 @@ html[data-lite="true"] .hk-go-coin > span {
   }
 }
 
-/* end phase 7B: hackker mode + 404 */
+/* end phase 7B: terminal mode + 404 */
 
 /* ── phase 7A: badges, sound, rewind ───────────────────────────────────
  * Badge toasts (components/game/toast + badges/BadgeWatcher), the HUD Badges button and the
@@ -5801,7 +5801,7 @@ html:not([data-lite]) .hk-badges:target {
 
 /* Paper (#F3EFE6) on volt (#3D5AFE) is 4.47:1, a hair under AA for small text (stickers, the
    regular boss badge, stat cards, Journey strips): text on volt uses a lighter paper (4.8:1).
-   Hackker Mode keeps its own dark text on accent blocks (more specific rule above). */
+   Terminal Mode keeps its own dark text on accent blocks (more specific rule above). */
 .bg-volt.text-paper {
   color: #fbf9f4;
 }

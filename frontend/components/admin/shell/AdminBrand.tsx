@@ -24,7 +24,7 @@ export function AdminBrand({
         <Gamepad2 className="size-4" aria-hidden="true" />
       </span>
       <span className="flex flex-col leading-tight">
-        <span className="text-sm font-semibold">Hackker</span>
+        <span className="text-sm font-semibold">Yehezkiel Natanael</span>
         <span className="text-muted-foreground text-xs">Portfolio admin</span>
       </span>
     </Link>

@@ -256,7 +256,7 @@ export const BADGES: readonly BadgeDef[] = [
     id: "konami",
     title: "Konami",
     condition: "A classic cheat code… try it anywhere on the site.",
-    earned: "You entered the Konami code: Hackker Mode unlocked.",
+    earned: "You entered the Konami code: Terminal Mode unlocked.",
     secret: true,
     tone: "lime",
     icon: [

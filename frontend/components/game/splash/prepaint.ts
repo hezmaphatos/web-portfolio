@@ -7,7 +7,7 @@
  * - `data-boot="play|skip"`: whether the boot screen (splash) plays. CSS shows the server-rendered
  *   overlay only under `play`, so there is never a flash of the Hero before the overlay, and with
  *   JavaScript off (no script → no attribute) the overlay simply never shows.
- * - `data-theme="hackker"`: Hackker Mode (the Konami theme, stored preference `hackerMode`), so a
+ * - `data-theme="terminal"`: Terminal Mode (the Konami theme, stored preference `terminalMode`), so a
  *   returning hacker never sees one frame of the paper theme. Never on /admin (own theme).
  *   <StoreHydrator> mirrors later changes; components/game/konami/ switches it.
  *
@@ -24,7 +24,7 @@ export const BOOT_SEEN_KEY = "boot_seen";
  * Must equal PREFS_KEY in lib/store.ts. Duplicated on purpose: lib/store.ts is a "use client"
  * module, and a server component importing a value from it gets a client reference, not the string.
  */
-export const PREPAINT_PREFS_KEY = "hackker_prefs";
+export const PREPAINT_PREFS_KEY = "p1_prefs";
 
 export function prepaint(prefsKey: string, seenKey: string): void {
   const root = document.documentElement;
@@ -35,7 +35,7 @@ export function prepaint(prefsKey: string, seenKey: string): void {
     // very old browser: assume full motion
   }
 
-  // zustand persist stores {"state":{"lite":"auto"|"on"|"off","hackerMode":bool,…},"version":0}.
+  // zustand persist stores {"state":{"lite":"auto"|"on"|"off","terminalMode":bool,…},"version":0}.
   let pref = "auto";
   let hacker = false;
   try {
@@ -43,7 +43,7 @@ export function prepaint(prefsKey: string, seenKey: string): void {
     const stored = raw ? JSON.parse(raw) : null;
     const storedLite = stored && stored.state ? stored.state.lite : null;
     if (storedLite === "on" || storedLite === "off") pref = storedLite;
-    hacker = !!(stored && stored.state && stored.state.hackerMode === true);
+    hacker = !!(stored && stored.state && stored.state.terminalMode === true);
   } catch {
     // storage blocked or corrupt JSON: follow the system settings
   }
@@ -62,7 +62,7 @@ export function prepaint(prefsKey: string, seenKey: string): void {
   root.setAttribute("data-lite", lite ? "true" : "false");
   root.setAttribute("data-boot", seen || reduce || lite ? "skip" : "play");
   if (hacker && window.location.pathname.indexOf("/admin") !== 0) {
-    root.setAttribute("data-theme", "hackker");
+    root.setAttribute("data-theme", "terminal");
   }
 }
 

@@ -1,4 +1,4 @@
-# PORTFOLIO SPEC — "PLAYER ONE" (Yehezkiel "Hackker" Natanael)
+# PORTFOLIO SPEC — "PLAYER ONE" (Yehezkiel Natanael)
 
 > Dokumen ini adalah **satu-satunya sumber kebenaran** untuk Claude Code. Baca seluruhnya sebelum menulis kode, lalu kerjakan **per fase** (Bagian 14). Jangan lompat fase.
 
@@ -20,7 +20,7 @@
 
 Web portfolio pribadi yang berbentuk **scrollytelling bergaya game**: pengunjung "memainkan" save file karier Yehezkiel dengan men-scroll. Ada **admin panel** untuk mengelola seluruh data (profil, pengalaman, skill, project, award, pesan masuk, media). **Section Project adalah bagian paling interaktif**, tapi bukan satu-satunya yang interaktif.
 
-**Lapisan RPG (konsep inti, Bagian 5 dan 6.4):** pengunjung memainkan karakter "Hackker". Di **Skill Tree**, semua skill yang dikuasai pemilik menjadi *skill game* (damage + cooldown) yang bisa dipasang ke **4 slot loadout**. Di **Projects**, setiap project adalah **boss** (punya HP). Overview dan detail project selalu terbuka, tapi **separuh tech stack serta link/live preview terkunci** sampai boss dikalahkan. Semua angka game (damage, cooldown, HP, tier boss) diatur dari admin panel. Progres (loadout, boss yang sudah dikalahkan, badge) disimpan di **cookie selama 7 hari** supaya pengunjung tidak perlu mengulang. Setiap stage punya **hint/tutorial kecil** yang memberi tahu apa yang harus dilakukan.
+**Lapisan RPG (konsep inti, Bagian 5 dan 6.4):** pengunjung memainkan karakter "Hezki". Di **Skill Tree**, semua skill yang dikuasai pemilik menjadi *skill game* (damage + cooldown) yang bisa dipasang ke **4 slot loadout**. Di **Projects**, setiap project adalah **boss** (punya HP). Overview dan detail project selalu terbuka, tapi **separuh tech stack serta link/live preview terkunci** sampai boss dikalahkan. Semua angka game (damage, cooldown, HP, tier boss) diatur dari admin panel. Progres (loadout, boss yang sudah dikalahkan, badge) disimpan di **cookie selama 7 hari** supaya pengunjung tidak perlu mengulang. Setiap stage punya **hint/tutorial kecil** yang memberi tahu apa yang harus dilakukan.
 
 Tujuan sekunder (penting): pemilik ingin **belajar stack frontend interaktif modern** di luar Laravel/Tailwind/React/Bootstrap. Jadi kode frontend harus rapi, berkomentar seperlunya pada bagian yang tidak umum (GSAP/ScrollTrigger sync, intercepting routes), dan `docs/LEARNING_NOTES.md` berisi penjelasan singkat tiap teknik baru yang dipakai.
 
@@ -149,7 +149,7 @@ Setiap chapter punya `key` yang cocok dengan tabel `sections` (judul/subjudul bi
 | Tinkerer | Mengganti loadout skill sekali |
 | Night Owl | Berkunjung jam 00:00–04:00 waktu lokal |
 | Messenger | Mengirim pesan kontak |
-| Konami | Memasukkan kode Konami (membuka tema **Hackker Mode**: palet terminal gelap-hijau, font mono) |
+| Konami | Memasukkan kode Konami (membuka tema **Terminal Mode**: palet terminal gelap-hijau, font mono) |
 
 **Sound:** default **mati**. Efek suara dibuat dengan Web Audio API (osilator kecil) — **tanpa file audio**, menghindari masalah lisensi. Event: klik, badge, stage clear.
 
@@ -159,7 +159,7 @@ Setiap chapter punya `key` yang cocok dengan tabel `sections` (judul/subjudul bi
 
 Tujuan: terasa seperti layar loading game AAA yang **sangat halus**, tapi singkat dan tidak menahan konten. Timeline GSAP tunggal, hanya `transform`/`opacity`/`clip-path`, target 60 fps.
 
-1. **Nyala (0–0,5 s):** layar `--ink` penuh dengan scanline tipis dan grain. Garis horizontal tipis melebar menjadi layar penuh (efek CRT menyala, `scaleY`), lalu wordmark **HACKKER** (Silkscreen) flicker-in.
+1. **Nyala (0–0,5 s):** layar `--ink` penuh dengan scanline tipis dan grain. Garis horizontal tipis melebar menjadi layar penuh (efek CRT menyala, `scaleY`), lalu wordmark **HEZKI** (Silkscreen) flicker-in.
 2. **Judul:** "PLAYER ONE" besar, di bawahnya teks status "LOADING SAVE FILE…".
 3. **Bar loading:** bar bersegmen tebal (blok pixel). **Avatar pixel berlari di atas bar** mengikuti progress. Angka persen 000→100 bergaya odometer (mono, tabular). **Tips bergantian** (crossfade tiap ±1,2 s), mis. "TIP: Equip up to 4 skills", "TIP: Every project is a boss".
 4. **Progress nyata:** dihitung dari aset kritis (font via `document.fonts.ready`, gambar hero/LCP, payload `/public/home`, init GSAP). Angka yang ditampilkan di-*ease* menuju target, **tidak pernah mundur**. Durasi tampil minimal 2,2 s agar tidak berkedip, **maksimal 5 s** (setelah itu paksa 100%).
@@ -172,11 +172,11 @@ Tujuan: terasa seperti layar loading game AAA yang **sangat halus**, tapi singka
 
 Data karakter dan boss yang sudah dikalahkan disimpan di **cookie** supaya pengunjung tidak perlu mengulang.
 
-- **Nama dan isi:** cookie `hackker_save`, nilai = JSON ringkas ter-URL-encode: `{"v":1,"loadout":[skillId…≤4],"defeated":[projectId…],"badges":["first-blood",…],"hints":["skills","projects"],"visited":<bitmask chapter>,"t":<epoch dibuat>}`. Pakai **ID numerik** (bukan slug) agar kecil; target ukuran < 2 KB (jika terlampaui, buang `hints` dulu).
+- **Nama dan isi:** cookie `p1_save`, nilai = JSON ringkas ter-URL-encode: `{"v":1,"loadout":[skillId…≤4],"defeated":[projectId…],"badges":["first-blood",…],"hints":["skills","projects"],"visited":<bitmask chapter>,"t":<epoch dibuat>}`. Pakai **ID numerik** (bukan slug) agar kecil; target ukuran < 2 KB (jika terlampaui, buang `hints` dulu).
 - **Atribut:** `Max-Age=604800` (7 hari), `Path=/`, `SameSite=Lax`, `Secure` di production, **bukan HttpOnly** (dibaca dan ditulis JS). Masa berlaku **diperpanjang 7 hari setiap kali ada perubahan** (sliding), jadi kedaluwarsa 7 hari setelah aktivitas terakhir.
 - **Implementasi:** `lib/save.ts` (parse, serialize, validasi Zod, field `v` untuk versi; data korup atau versi tak dikenal diabaikan dan mulai save baru). Zustand `persist` dengan `storage` kustom berbasis `document.cookie` (tanpa library tambahan). ID skill/project yang sudah tidak ada disaring saat hydrate.
 - **Hydration tanpa kedipan:** halaman tetap **statis/ter-cache**, server **tidak** membaca cookie (jangan pakai `cookies()`). HTML server selalu merender keadaan terkunci; store di-hydrate setelah mount (`skipHydration` + `rehydrate()` di effect), lalu UI beralih. Chip terkunci dan terbuka berukuran sama agar tidak ada layout shift.
-- **Pembagian penyimpanan:** hanya **progres game** di cookie. Preferensi (Lite, Sound, tema Hackker Mode) tetap di `localStorage`.
+- **Pembagian penyimpanan:** hanya **progres game** di cookie. Preferensi (Lite, Sound, tema Terminal Mode) tetap di `localStorage`.
 - **Bukan mekanisme keamanan:** pengunjung bisa mengubah cookie sendiri; tidak apa-apa karena yang terkunci hanyalah hadiah kosmetik (lihat 6.4).
 - **Privasi:** cookie fungsional pihak pertama tanpa tracking. Tampilkan satu baris di laci Badges: "Your game progress is stored in a cookie for 7 days." plus tombol **Reset save** (hapus cookie dan reset state). "NEW GAME" di splash melakukan hal yang sama.
 - **Fallback:** jika cookie diblokir, state hidup di memori selama sesi itu, tanpa error.
@@ -228,7 +228,7 @@ Setiap pembukaan project menambah `view_count` (endpoint publik throttled) dan m
 
 ### 6.4 Boss Battle & Lock System
 
-**Konsep:** setiap project dengan `boss_enabled = true` adalah boss. Pengunjung adalah karakter "Hackker" yang bertarung memakai **loadout 4 skill** dari Skill Tree. Project tanpa boss (`boss_enabled = false`) terbuka seluruhnya dan tidak punya Arena.
+**Konsep:** setiap project dengan `boss_enabled = true` adalah boss. Pengunjung adalah karakter "Hezki" yang bertarung memakai **loadout 4 skill** dari Skill Tree. Project tanpa boss (`boss_enabled = false`) terbuka seluruhnya dan tidak punya Arena.
 
 **Yang selalu terbuka:** judul, tagline, summary/overview, story blocks, meta, galeri screenshot, video, dan 50% tech stack.
 **Terkunci sampai boss kalah:** sisa tech stack (chip "???"), tombol **Open site / Repo** (`live_url`, `repo_url`), dan tab **Live preview**.
@@ -395,7 +395,7 @@ Prefix `/api/v1`. Response JSON konsisten: `{ "data": ..., "meta": ... }`; error
 **Rencana deploy (tulis ke `docs/DEPLOY.md`):**
 - Frontend → **Vercel** (paling mulus untuk Next.js).
 - Backend → hosting yang sudah dikenal pemilik (cPanel/Hostinger): document root ke `public/`, `php artisan storage:link`, `migrate --force`, `config:cache`. Catat batas upload PHP (`upload_max_filesize`, `post_max_size`) agar sesuai batas media.
-- Dua domain/subdomain terpisah (mis. `hackker.dev` dan `api.hackker.dev`) — sesuaikan CORS dan `remotePatterns`.
+- Dua domain/subdomain terpisah (mis. `yourdomain.dev` dan `api.yourdomain.dev`) — sesuaikan CORS dan `remotePatterns`.
 
 ---
 
@@ -432,7 +432,7 @@ Scene A pinned, Scene B grid + filter Flip, intercepting route modal dengan shar
 ✔ Semua skenario Bagian 6 jalan di desktop dan mobile; direct URL & refresh benar; iframe yang diblokir jatuh ke fallback; boss dikalahkan → tech dan link terbuka serta tetap terbuka setelah reload (cookie).
 
 **Fase 7 — Game layer**
-Badges (baca/tulis lewat save cookie) + toast + laci + tombol **Reset save**, Sound (Web Audio), Konami → Hackker Mode, 404 "GAME OVER", toggle Lite, auto-Lite.
+Badges (baca/tulis lewat save cookie) + toast + laci + tombol **Reset save**, Sound (Web Audio), Konami → Terminal Mode, 404 "GAME OVER", toggle Lite, auto-Lite.
 ✔ Semua badge bisa dipicu dan bertahan setelah reload.
 
 **Fase 8 — Polish**
@@ -452,7 +452,7 @@ Tulis `docs/DEPLOY.md` dan, bila diminta, bantu deploy.
 > Seeder memakai data ini. Teks sudah dirapikan dari CV (typo diperbaiki). **Tidak ada media yang di-seed** (tampilkan placeholder). Alamat rumah **tidak** ditampilkan; nomor telepon diisi hanya sebagai nilai admin dengan `show_phone = false`.
 
 ### Site settings
-- `full_name`: Yehezkiel Natanael · `nickname`: Hackker
+- `full_name`: Yehezkiel Natanael · `nickname`: Hezki
 - `headline`: Backend-focused developer
 - `roles`: ["Backend Developer", "Laravel Engineer", "Mobile Explorer", "Team Lead"]
 - `tagline`: Building database-driven systems, and now learning to make the front end move.
@@ -556,7 +556,7 @@ Site setting game: `tech_visible_percent = 50`.
 - [ ] Setiap chapter dan Project Stage punya hint/tutorial yang tampil sekali, bisa dimunculkan ulang lewat Help (?), dan tidak memblokir.
 - [ ] Skill Tree: inventory, 4 slot loadout, dan Training Dummy berfungsi; loadout bertahan setelah reload.
 - [ ] Boss Battle: damage/cooldown/HP sesuai data admin; boss kalah → sisa tech, link, dan tab Live terbuka; admin bisa mengubah skill dan boss (termasuk Boss Preview) tanpa menyentuh kode.
-- [ ] Save cookie `hackker_save` berlaku 7 hari (diperpanjang tiap perubahan), tanpa kedipan saat hydrate, dan **Reset save** / NEW GAME menghapusnya.
+- [ ] Save cookie `p1_save` berlaku 7 hari (diperpanjang tiap perubahan), tanpa kedipan saat hydrate, dan **Reset save** / NEW GAME menghapusnya.
 - [ ] Lite mode: pertarungan tetap bisa dimainkan tanpa animasi dan ada Skip battle; tanpa JS semua tech dan link terbuka.
 - [ ] Konvensi backend Bagian 10 terpenuhi (periksa dengan grep: tidak ada `collect(`, tidak ada query dalam loop, tidak ada `->` pada hasil query di Service selain pembangunan query).
 - [ ] Target performa/aksesibilitas Bagian 12 tercapai; smoke test lulus.
@@ -573,3 +573,5 @@ Keputusan yang diambil di revisi ini:
 - Semua slot mulai dalam keadaan *charging* saat FIGHT, tanpa game over, agar fight konsisten ±3–6 detik dan tidak menyita fokus. Jika terasa terlalu singkat, naikkan `boss_hp` di admin (estimasi waktu clear tersedia di Boss Preview).
 - Cookie bersifat *sliding* (7 hari sejak aktivitas terakhir) dan hanya menyimpan progres game; preferensi (Lite, Sound, tema) tetap di `localStorage`.
 - Mode Lite menambah tombol Skip battle agar pengunjung dengan reduced-motion atau koneksi hemat data tidak terhalang.
+
+**Revisi 3 — tanpa alias "Hackker":** semua penyebutan alias "Hackker" dihapus atas permintaan pemilik. Nickname = **Hezki** (diatur di admin), nama lengkap = **Yehezkiel Natanael** tanpa alias. Tema Konami bernama **Terminal Mode**; cookie progres bernama `p1_save` (preferensi `p1_prefs`, penghitung Curious `p1_opened`).

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { frameVerdict, type FrameHeaders } from "./framing";
 
-const site = new URL("https://hackker.dev/projects/mindlens");
+const site = new URL("https://yourdomain.dev/projects/mindlens");
 const target = new URL("https://example.com/");
 
 const verdict = (headers: Partial<FrameHeaders>, ancestor = site, framed = target) =>
@@ -19,14 +19,14 @@ describe("frameVerdict", () => {
     expect(verdict({ xFrameOptions: "SAMEORIGIN" }, target)).toBe("allowed");
     expect(verdict({ xFrameOptions: "SAMEORIGIN, DENY" }, target)).toBe("blocked");
     // Obsolete: ignored by current browsers.
-    expect(verdict({ xFrameOptions: "ALLOW-FROM https://hackker.dev" })).toBe("allowed");
+    expect(verdict({ xFrameOptions: "ALLOW-FROM https://yourdomain.dev" })).toBe("allowed");
   });
 
   it("lets frame-ancestors override X-Frame-Options", () => {
     expect(
       verdict({
         xFrameOptions: "DENY",
-        contentSecurityPolicy: "frame-ancestors https://hackker.dev",
+        contentSecurityPolicy: "frame-ancestors https://yourdomain.dev",
       }),
     ).toBe("allowed");
     expect(verdict({ contentSecurityPolicy: "default-src 'self'; frame-ancestors 'none'" })).toBe(
@@ -40,12 +40,12 @@ describe("frameVerdict", () => {
     expect(csp("'self'")).toBe("blocked");
     expect(csp("https:")).toBe("allowed");
     expect(csp("http:")).toBe("allowed"); // http: also allows https:
-    expect(csp("*.hackker.dev")).toBe("blocked"); // a wildcard needs a subdomain
+    expect(csp("*.yourdomain.dev")).toBe("blocked"); // a wildcard needs a subdomain
     expect(csp("*.dev")).toBe("allowed");
-    expect(csp("hackker.dev")).toBe("allowed");
-    expect(csp("https://hackker.dev:443")).toBe("allowed");
-    expect(csp("https://hackker.dev:8443")).toBe("blocked");
-    expect(csp("https://other.dev https://hackker.dev/path")).toBe("allowed");
+    expect(csp("yourdomain.dev")).toBe("allowed");
+    expect(csp("https://yourdomain.dev:443")).toBe("allowed");
+    expect(csp("https://yourdomain.dev:8443")).toBe("blocked");
+    expect(csp("https://other.dev https://yourdomain.dev/path")).toBe("allowed");
     expect(csp("https://github.com")).toBe("blocked");
   });
 

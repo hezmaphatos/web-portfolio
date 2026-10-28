@@ -116,7 +116,7 @@ export default async function ProjectOgImage({ params }: { params: Promise<{ slu
     ? `${TIER_TEXT[boss.tier].toUpperCase()} · HP ${boss.hp}`
     : "OPEN LEVEL · NO BOSS";
 
-  const pixelText = `HACKKER PLAYER ONE ${kicker} ${bossLine} ${owner.toUpperCase()} 0123456789·`;
+  const pixelText = `PLAYER ONE ${kicker} ${bossLine} ${owner.toUpperCase()} 0123456789·`;
   const bodyText = `${tagline ?? ""} ${boss?.name ?? ""} ${owner}`;
   const texts: Record<string, string> = { Display: title, Body: bodyText, Pixel: pixelText };
   const loaded = await Promise.all(
@@ -208,7 +208,7 @@ export default async function ProjectOgImage({ params }: { params: Promise<{ slu
               fontFamily: family("Pixel"),
             }}
           >
-            HACKKER · PLAYER ONE
+            PLAYER ONE
           </div>
           <div
             style={{

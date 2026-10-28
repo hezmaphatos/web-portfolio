@@ -41,7 +41,7 @@ class SiteSettingsTest extends TestCase
     {
         return array_merge([
             'full_name' => 'Yehezkiel Natanael',
-            'nickname' => 'Hackker',
+            'nickname' => 'Hezki',
             'headline' => 'Backend-focused developer',
             'roles' => ['Backend Developer', 'Laravel Engineer'],
             'tagline' => 'Building database-driven systems.',
@@ -56,7 +56,7 @@ class SiteSettingsTest extends TestCase
                 ['label' => 'GPA', 'value' => '3.91', 'prefix' => '', 'suffix' => '/4.00', 'auto' => null],
                 ['label' => 'Projects', 'value' => null, 'auto' => 'projects'],
             ],
-            'seo_title' => 'Hackker — Player One',
+            'seo_title' => 'Hezki — Player One',
             'seo_description' => 'Portfolio.',
             'sound_default' => true,
             'tech_visible_percent' => 60,
@@ -138,7 +138,7 @@ class SiteSettingsTest extends TestCase
 
         $response->assertOk()
             ->assertJsonStructure(['data' => self::ADMIN_KEYS])
-            ->assertJsonPath('data.nickname', 'Hackker')
+            ->assertJsonPath('data.nickname', 'Hezki')
             ->assertJsonPath('data.roles', ['Backend Developer', 'Laravel Engineer'])
             ->assertJsonPath('data.socials.0', ['label' => 'GitHub', 'url' => 'https://github.com/hezmaphatos', 'icon' => 'github'])
             ->assertJsonPath('data.stats.1', ['label' => 'Projects', 'value' => '', 'prefix' => '', 'suffix' => '', 'auto' => 'projects'])
@@ -148,7 +148,7 @@ class SiteSettingsTest extends TestCase
             ->assertJsonPath('data.tech_visible_percent', 60);
 
         $site = SiteSetting::query()->findOrFail(SiteSetting::ID);
-        $this->assertSame('Hackker', $site->nickname);
+        $this->assertSame('Hezki', $site->nickname);
         $this->assertSame(60, $site->tech_visible_percent);
         $this->assertSame($og->id, (int) $site->og_media_id);
         // Stored normalised.

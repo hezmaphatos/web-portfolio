@@ -21,8 +21,8 @@ import type { SectionKey } from "@/lib/types";
 
 /*
  * Client state. Two persisted stores, split on purpose (spec §5.2):
- * - useGameStore: game progress → the `hackker_save` cookie (7 days, sliding), via lib/save.ts.
- * - usePrefsStore: preferences (Lite, Sound, Hackker Mode) → localStorage.
+ * - useGameStore: game progress → the `p1_save` cookie (7 days, sliding), via lib/save.ts.
+ * - usePrefsStore: preferences (Lite, Sound, Terminal Mode) → localStorage.
  * Both use `skipHydration`: the server always renders the default (locked) state and
  * <StoreHydrator> rehydrates after mount, so there is no hydration mismatch.
  */
@@ -189,25 +189,25 @@ type PrefsState = {
   lite: LitePref;
   /** null = follow the site default (site.sound_default). */
   sound: boolean | null;
-  hackerMode: boolean;
+  terminalMode: boolean;
   hydrated: boolean;
   setLite: (lite: LitePref) => void;
   setSound: (sound: boolean) => void;
-  setHackerMode: (on: boolean) => void;
+  setTerminalMode: (on: boolean) => void;
 };
 
-export const PREFS_KEY = "hackker_prefs";
+export const PREFS_KEY = "p1_prefs";
 
 export const usePrefsStore = create<PrefsState>()(
   persist(
     (set) => ({
       lite: "auto",
       sound: null,
-      hackerMode: false,
+      terminalMode: false,
       hydrated: false,
       setLite: (lite) => set({ lite }),
       setSound: (sound) => set({ sound }),
-      setHackerMode: (hackerMode) => set({ hackerMode }),
+      setTerminalMode: (terminalMode) => set({ terminalMode }),
     }),
     {
       name: PREFS_KEY,
@@ -231,7 +231,7 @@ export const usePrefsStore = create<PrefsState>()(
       partialize: (state) => ({
         lite: state.lite,
         sound: state.sound,
-        hackerMode: state.hackerMode,
+        terminalMode: state.terminalMode,
       }),
       onRehydrateStorage: () => () => usePrefsStore.setState({ hydrated: true }),
     },

@@ -1,4 +1,4 @@
-# CLAUDE.md — Hackker portfolio ("PLAYER ONE")
+# CLAUDE.md — Hezki portfolio ("PLAYER ONE")
 
 `PORTFOLIO_SPEC.md` is the single source of truth (Indonesian). This file summarises the rules every session must follow. Public UI text is **English**.
 
@@ -27,7 +27,7 @@ Each phase ends with lint, typecheck, build and tests passing, then a commit `ph
 4. Animated core chapters — Lenis+GSAP provider, HUD shell, avatar path, Splash/Boot (§5.1), save cookie store (§5.2), hint system (§5.3), Hero, About, Journey.
 5. Skills (tree + inventory + 4-slot loadout + training dummy), Trophies, Contact (+ STAGE CLEAR), chapter menu overlay.
 6. Projects — Scene A pinned, Scene B grid + Flip filter, intercepting-route modal + shared-element transition, Project Stage with Battle Arena (§6.4), Preview Deck, lock/unlock, lightbox, next/prev, OG image, `lib/battle.ts` + Vitest, boss coach marks, Lite "Skip battle".
-7. Game layer — badges + toast + drawer + Reset save, Web Audio sound, Konami → Hackker Mode, 404 "GAME OVER", Lite toggle, auto-Lite.
+7. Game layer — badges + toast + drawer + Reset save, Web Audio sound, Konami → Terminal Mode, 404 "GAME OVER", Lite toggle, auto-Lite.
 8. Polish — performance, a11y, SEO, mobile, reduced-motion QA, Playwright smoke tests, LEARNING_NOTES.
 9. Stretch (only after 0–8). 10. Deploy docs.
 
@@ -62,6 +62,6 @@ API: prefix `/api/v1`, success `{ "data": ..., "meta"?: ... }`, error `{ "messag
 
 ## Game rules summary
 
-**Save cookie (§5.2)** — `hackker_save`, URL-encoded JSON `{"v":1,"loadout":[skillId…≤4],"defeated":[projectId…],"badges":[…],"hints":[…],"visited":<chapter bitmask>,"t":<epoch created>}`; numeric IDs; < 2 KB (drop `hints` first). `Max-Age=604800`, `Path=/`, `SameSite=Lax`, `Secure` in production, not HttpOnly; sliding expiry (re-set on every change). Zod-validated in `lib/save.ts`; unknown version/corrupt → fresh save; unknown IDs filtered on hydrate. Zustand `persist` with a custom `document.cookie` storage, `skipHydration` + `rehydrate()` in an effect — the server never reads it and always renders the locked state; locked/unlocked chips have identical size. Preferences (Lite, Sound, Hackker Mode) live in `localStorage`. Cookie blocked → in-memory state. Badges drawer shows "Your game progress is stored in a cookie for 7 days." + **Reset save** (same as NEW GAME).
+**Save cookie (§5.2)** — `p1_save`, URL-encoded JSON `{"v":1,"loadout":[skillId…≤4],"defeated":[projectId…],"badges":[…],"hints":[…],"visited":<chapter bitmask>,"t":<epoch created>}`; numeric IDs; < 2 KB (drop `hints` first). `Max-Age=604800`, `Path=/`, `SameSite=Lax`, `Secure` in production, not HttpOnly; sliding expiry (re-set on every change). Zod-validated in `lib/save.ts`; unknown version/corrupt → fresh save; unknown IDs filtered on hydrate. Zustand `persist` with a custom `document.cookie` storage, `skipHydration` + `rehydrate()` in an effect — the server never reads it and always renders the locked state; locked/unlocked chips have identical size. Preferences (Lite, Sound, Terminal Mode) live in `localStorage`. Cookie blocked → in-memory state. Badges drawer shows "Your game progress is stored in a cookie for 7 days." + **Reset save** (same as NEW GAME).
 
 **Boss battle (§6.4)** — projects with `boss_enabled` are bosses. Always open: title, tagline, summary, story, meta, screenshots, video, and the visible part of the tech stack. Locked until defeated: remaining tech chips ("???"), Open site / Repo buttons, Live preview tab. Visible tech = `min(n − 1, ceil(n × tech_visible_percent / 100))` (n = 1 → 0 visible), order = `project_skill.sort_order`. Skills: `damage` 25–70, `cooldown_ms` 1000–4000 step 500, `attack_name`. Loadout 4 slots; default = 4 highest `damage` (ties: `level`, then `sort_order`). Boss HP presets minion 50 / regular 100 / final 150 (10–300). Fixed damage, no crits, the boss never attacks, no timer, **no game over**. FIGHT! shows `boss_intro`, every slot starts *charging*; ready slots fire via click/tap or keys 1–4; Auto-fire toggle (`A`, default off). Final tier has 3 visual phases (66 %/33 %). Defeat: 150 ms hit-stop, pixel dissolve, BOSS DEFEATED + `boss_defeat_text`, unlock sequence ≤ 1.5 s; write `defeated` to the cookie and `POST /public/projects/{slug}/defeat` once. Rematch never re-locks. Lite/reduced-motion: instant HP, `aria-live` text, **Skip battle** (counts as defeated). `<noscript>`: everything unlocked, Arena hidden. The lock is a game mechanic, not security: the API payload always contains every tech and link.

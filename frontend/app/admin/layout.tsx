@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ["latin"], variable: "--font-admin", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Admin · Hackker", template: "%s · Admin · Hackker" },
+  title: { default: "Admin · Yehezkiel Natanael", template: "%s · Admin · Yehezkiel Natanael" },
   robots: { index: false, follow: false, nocache: true },
 };
 

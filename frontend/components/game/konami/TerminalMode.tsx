@@ -13,7 +13,7 @@ import {
 } from "@/lib/konami";
 import { usePrefsStore } from "@/lib/store";
 
-import { applyTheme, storedHackerMode, toggleHackkerMode, useThemeFlash } from "./hackerMode";
+import { applyTheme, storedTerminalMode, toggleTerminalMode, useThemeFlash } from "./terminalTheme";
 
 /** Typing in a field never counts (arrows move the caret, B/A are letters). */
 function isEditable(target: EventTarget | null): boolean {
@@ -22,7 +22,7 @@ function isEditable(target: EventTarget | null): boolean {
 }
 
 /**
- * The Konami code → Hackker Mode (spec §5), mounted once in <GameChrome>.
+ * The Konami code → Terminal Mode (spec §5), mounted once in <GameChrome>.
  *
  * - Keyboard: ↑ ↑ ↓ ↓ ← → ← → B A toggles the theme (lib/konami.ts does the matching).
  * - Touch: swipe ↑ ↑ ↓ ↓ ← → ← → anywhere, then tap twice. Passive listeners, so scrolling is
@@ -35,9 +35,9 @@ function isEditable(target: EventTarget | null): boolean {
  * don't toggle Auto-fire on that press.
  *
  * Also renders the CRT flash played on every switch, and the scanline layer that CSS only shows
- * under html[data-theme="hackker"] (so it is right from the first paint).
+ * under html[data-theme="terminal"] (so it is right from the first paint).
  */
-export function HackkerMode() {
+export function TerminalMode() {
   const flash = useThemeFlash((state) => state.count);
   /** The last flash that finished; a newer count means one is playing. */
   const [done, setDone] = useState(0);
@@ -45,7 +45,7 @@ export function HackkerMode() {
   // Dev only: React's Strict Mode remount resets <html> to the attributes it renders, wiping the
   // one the pre-paint script set. Put it back before paint until the stored prefs take over.
   useLayoutEffect(() => {
-    if (!usePrefsStore.getState().hydrated && storedHackerMode()) applyTheme(true);
+    if (!usePrefsStore.getState().hydrated && storedTerminalMode()) applyTheme(true);
   }, []);
 
   useLayoutEffect(() => {
@@ -61,7 +61,7 @@ export function HackkerMode() {
       if (!result.matched) return;
       // The final "A" is ours: the Arena / Training Dummy must not toggle Auto-fire with it.
       event.preventDefault();
-      toggleHackkerMode();
+      toggleTerminalMode();
     };
 
     window.addEventListener("keydown", onKey, true);
@@ -91,7 +91,7 @@ export function HackkerMode() {
       if (!token) return;
       const result = stepKonami(gestures, token, event.timeStamp, KONAMI_TOUCH);
       gestures = result.state;
-      if (result.matched) toggleHackkerMode();
+      if (result.matched) toggleTerminalMode();
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });

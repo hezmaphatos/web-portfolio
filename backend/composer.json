@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "hackker/backend",
+    "name": "yehezkiel/portfolio-backend",
     "type": "project",
-    "description": "Hackker portfolio API (Laravel, API only).",
+    "description": "Portfolio API (Laravel, API only).",
     "keywords": [
         "laravel",
         "framework"

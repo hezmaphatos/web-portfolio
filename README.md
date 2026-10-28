@@ -1,6 +1,6 @@
-# Hackker — PLAYER ONE
+# Hezki — PLAYER ONE
 
-Personal portfolio of Yehezkiel "Hackker" Natanael: a game-style scrollytelling site plus an admin panel.
+Personal portfolio of Yehezkiel Natanael: a game-style scrollytelling site plus an admin panel.
 
 ```
 backend/    Laravel 13 (API only) + MySQL 8 — data, auth (Sanctum), uploads
@@ -73,7 +73,7 @@ npx playwright show-report        # HTML report of the last run
 | -------------------- | ------------------------------- |
 | `E2E_BASE_URL`       | `http://localhost:3100`         |
 | `E2E_ADMIN_EMAIL`    | `yehezkielnatanael05@gmail.com` |
-| `E2E_ADMIN_PASSWORD` | `hackker-admin-2026`            |
+| `E2E_ADMIN_PASSWORD` | `portfolio-admin-2026`            |
 
 - The `admin-login` setup project logs in through the real form once per run (the login is throttled to 5/min) and saves the session to `frontend/e2e/.auth/` (gitignored); the `admin-logout` teardown deletes leftover test projects (slug `e2e-smoke-…`) and revokes the token.
 - The admin and boss tests create a published project and delete it again, so they need a writable dev database and the backend → site revalidation (`REVALIDATE_SECRET` on both sides).

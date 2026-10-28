@@ -7,12 +7,12 @@ import { CURIOUS_TARGET } from "@/lib/badges";
 /*
  * The Curious counter: which projects this visitor opened (a Project Stage shown, page or modal).
  * The save cookie's format is fixed by spec §5.2, so the counter lives in localStorage
- * (`hackker_opened`, a JSON list of slugs) — a counter, not progress: the badge itself goes into
+ * (`p1_opened`, a JSON list of slugs) — a counter, not progress: the badge itself goes into
  * the cookie. Only CURIOUS_TARGET distinct slugs are kept (all the badge needs). Blocked storage
  * → an in-memory list for this page session. Reset save / NEW GAME clear it (BadgeWatcher).
  */
 
-export const OPENED_KEY = "hackker_opened";
+export const OPENED_KEY = "p1_opened";
 
 function readStorage(): string[] {
   try {

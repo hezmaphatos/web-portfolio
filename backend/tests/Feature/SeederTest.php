@@ -78,7 +78,7 @@ class SeederTest extends TestCase
         $site = SiteSetting::query()->findOrFail(SiteSetting::ID)->toArray();
 
         $this->assertSame('Yehezkiel Natanael', $site['full_name']);
-        $this->assertSame('Hackker', $site['nickname']);
+        $this->assertSame('Hezki', $site['nickname']);
         $this->assertSame(['Backend Developer', 'Laravel Engineer', 'Mobile Explorer', 'Team Lead'], $site['roles']);
         $this->assertNull($site['phone']);
         $this->assertFalse($site['show_phone']);

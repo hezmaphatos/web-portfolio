@@ -12,7 +12,7 @@ import { useEffect } from "react";
  */
 export function DocumentTitle({ title }: { title: string }) {
   useEffect(() => {
-    const full = `${title} · Admin · Hackker`;
+    const full = `${title} · Admin · Yehezkiel Natanael`;
     const apply = () => {
       if (document.title !== full) document.title = full;
     };

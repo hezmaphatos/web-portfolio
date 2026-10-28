@@ -1,5 +1,5 @@
 {
-  "name": "hackker-portfolio",
+  "name": "yehezkiel-portfolio",
   "private": true,
   "description": "Monorepo: Laravel API (backend/) + Next.js site and admin (frontend/).",
   "scripts": {

@@ -3,7 +3,7 @@
 export const BASE_URL = (process.env.E2E_BASE_URL ?? "http://localhost:3100").replace(/\/+$/, "");
 
 export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "yehezkielnatanael05@gmail.com";
-export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "hackker-admin-2026";
+export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "portfolio-admin-2026";
 
 /** The admin session saved by admin.setup.ts (gitignored). */
 export const ADMIN_STATE = "e2e/.auth/admin.json";
