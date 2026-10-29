@@ -287,4 +287,42 @@ php artisan migrate --force
 php artisan config:cache && php artisan route:cache
 ```
 
+Run all four lines every time — the ones with nothing to do finish instantly. Never run `db:seed`
+again: it resets content you edited in the admin to the seed data (exception:
+`php artisan db:seed --class=AdminUserSeeder --force` resets only the admin login to the `.env`
+`ADMIN_EMAIL` / `ADMIN_PASSWORD`, for a forgotten password). Don't edit code on the server either —
+`git pull` would conflict; change it locally and push.
+
 **Frontend:** every push to `main` redeploys on Vercel. Content edits in `/admin` never need a deploy.
+Changed a Vercel environment variable? Redeploy by hand (_Deployments → ⋯ → Redeploy_): env vars are
+read at build time.
+
+### Lessons learned (first deploy, 2026-10-29)
+
+| Symptom                                                 | Cause → fix                                                                                                                                                                                                                                               |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every URL on the API host is Apache "Not Found"         | The site's root directory was wrong → `/portfolio/backend/public`.                                                                                                                                                                                        |
+| `vendor/autoload.php` missing                           | `composer install --no-dev --optimize-autoloader` never ran after cloning.                                                                                                                                                                                |
+| Images show only their alt text on the site             | `APP_URL` was `http://…`, so media URLs were http and Vercel's image optimiser (https only, host from `API_URL`) refused them → `APP_URL=https://yehezkiel.alwaysdata.net`, `php artisan config:cache`, then re-save anything in the admin to revalidate. |
+| Admin login does nothing until a page refresh           | Client router replayed a cached redirect; fixed in code (commit 7c85f52, full page load after login/logout).                                                                                                                                              |
+| Any `.env` change on the server seems ignored           | Config is cached → `php artisan config:cache` after every `.env` edit.                                                                                                                                                                                    |
+| SSH host `ssh-<account>.alwaysdata.net` doesn't resolve | New accounts take a while to appear in DNS — wait and retry.                                                                                                                                                                                              |
+| Hosts like InfinityFree: the API returns an HTML page   | Their anti-bot JS challenge (`aes.js`) blocks every non-browser client, so Vercel can't fetch the API. Unusable for this project.                                                                                                                         |
+
+### Open issue: some large image uploads return 500
+
+Seen with portrait screenshots around 1900×3224 (~6 MP, ~2.6 MB). Small images upload fine. A 500
+(not a 422 "could not be processed") means PHP itself died — likely the time limit (the free plan has
+a fraction of a CPU, and each image is converted to WebP + thumbnail + blur placeholder) or the
+memory limit. Diagnose on the server:
+
+```sh
+cd ~/portfolio/backend
+grep -n "ERROR\|memory\|Maximum execution" storage/logs/laravel.log | tail -5
+php -r 'echo ini_get("memory_limit"), " ", ini_get("max_execution_time"), PHP_EOL;'
+```
+
+Workarounds until fixed: upload such images one at a time, or resize them to ≤ 1920 px wide
+(the site never serves wider than that anyway — `portfolio.media.max_width`) before uploading.
+Possible fixes in `MediaService`: raise `set_time_limit()` around the processing, or lower
+`portfolio.media.max_pixels`.
