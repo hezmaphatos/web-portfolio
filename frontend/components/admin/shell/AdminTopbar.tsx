@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Menu } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/admin/ui/button";
@@ -77,7 +77,6 @@ function MobileNav() {
 }
 
 function LogoutButton() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
 
@@ -93,7 +92,8 @@ function LogoutButton() {
       // Offline: the cookie may survive, but the login page is still the right place to go.
     }
     queryClient.clear();
-    router.replace("/admin/login");
+    // Full load: a soft navigation could replay a cached "/admin/login → /admin" redirect.
+    window.location.replace("/admin/login");
   }
 
   return (

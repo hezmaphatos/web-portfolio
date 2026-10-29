@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -36,7 +36,6 @@ function safeNext(next: string | null): string {
 }
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const expired = searchParams.has("expired");
 
@@ -79,7 +78,9 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(safeNext(searchParams.get("next")));
+    // A full load, not router.replace: the client router may still hold the RSC payload of the
+    // pre-login visit to /admin (proxy.ts redirected it here) and would replay that redirect.
+    window.location.replace(safeNext(searchParams.get("next")));
   }
 
   return (
