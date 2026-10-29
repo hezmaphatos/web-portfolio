@@ -15,7 +15,7 @@ How they talk to each other:
 
 Deploy the **backend first**: the frontend build prerenders every page from the API.
 
-**Two ways to host the backend:** a PHP host with a persistent disk (cPanel/Hostinger, sections 1–6), or free: a container + cloud MySQL + object storage (section 7 — Render + TiDB Cloud + Cloudflare R2). The frontend goes to Vercel either way.
+**Ways to host the backend:** a PHP host with a persistent disk (cPanel/Hostinger, sections 1–6; the free alwaysdata plan in section 8 is the one in production), or a container + cloud MySQL + object storage (section 7 — Render + TiDB Cloud + Cloudflare R2). The frontend goes to Vercel either way.
 
 ## 1. Backend (cPanel / Hostinger)
 
@@ -258,3 +258,33 @@ only by the admin login, the contact form, the boss-defeat/view counters and the
 revalidation after an edit (~1 min for the first request). A free uptime monitor (e.g. UptimeRobot
 or cron-job.org) calling `https://<service>.onrender.com/up` every 10–14 minutes keeps it awake;
 one always-on service fits Render's 750 free instance hours a month.
+
+## 8. Production setup: alwaysdata (free) + Vercel
+
+What runs today. alwaysdata's free plan (1 GB disk, 256 MB RAM, MariaDB, SSH, no sleep; a card is
+asked once for validation) is a regular PHP host, so uploads stay on its disk (`MEDIA_DISK=public`).
+
+| Piece    | Where                                                                        |
+| -------- | ---------------------------------------------------------------------------- |
+| Site     | `https://yehezkiel-portfolio.vercel.app` (Vercel, Root Directory `frontend`) |
+| API      | `https://yehezkiel.alwaysdata.net/api/v1`                                    |
+| Database | MariaDB `yehezkiel_portfolio` on `mysql-yehezkiel.alwaysdata.net`            |
+| Code     | `~/portfolio` on the server, a clone of the GitHub repo                      |
+
+alwaysdata panel: _Environment → PHP_ = 8.4; _Web → Sites_ → type PHP, root directory
+`/portfolio/backend/public` (relative to the home folder), HTTPS redirect on.
+SSH: `ssh yehezkiel@ssh-yehezkiel.alwaysdata.net` (a new account's SSH hostname can take a while to
+appear in DNS). The backend `.env` follows section 1 with `DB_HOST=mysql-yehezkiel.alwaysdata.net`,
+`QUEUE_CONNECTION=sync` and `FRONTEND_URL=https://yehezkiel-portfolio.vercel.app`.
+
+**Updating the backend** after pushing to GitHub:
+
+```sh
+cd ~/portfolio && git pull
+cd backend
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:cache && php artisan route:cache
+```
+
+**Frontend:** every push to `main` redeploys on Vercel. Content edits in `/admin` never need a deploy.
