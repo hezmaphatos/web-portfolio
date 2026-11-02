@@ -1920,8 +1920,9 @@ html[data-overlay] .hk-hint {
 }
 
 /* No JavaScript: the button cannot toggle, so an anchor to #hk-menu opens the panel (:target)
-   and a "Close" link inside it leaves again. */
-.hk-menu-nojs {
+   and a "Close" link inside it leaves again. With JavaScript the anchors are hidden; the selector
+   outranks the .hk-btn / .hk-hud-btn display rules the anchors also carry. */
+html[data-lite] .hk-menu-nojs {
   display: none;
 }
 
@@ -5451,8 +5452,10 @@ html[data-lite="true"] .hk-go-coin > span {
 }
 
 /* HUD Badges button. Without JavaScript (no data-lite on <html>) an anchor to #hk-badges stands
-   in for it and CSS opens the drawer with :target. */
-.hk-badges-nojs {
+   in for it and CSS opens the drawer with :target. With JavaScript the anchors are hidden; the
+   selector must outrank .hk-badges-close (later in this file), or the no-JS close link covers the
+   real button and a tap on ✕ only changes the URL hash. */
+html[data-lite] .hk-badges-nojs {
   display: none;
 }
 

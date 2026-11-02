@@ -108,7 +108,7 @@ export function AboutChapter({ site, section, projectsCount }: Props) {
                         />
                       </div>
                       <p className="hk-flip-back-caption hk-pixel text-lime flex justify-between gap-3 text-xs">
-                        <span>8-bit form</span>
+                        <span>My hobby</span>
                         <span className="text-paper">{site.nickname}</span>
                       </p>
                     </div>
